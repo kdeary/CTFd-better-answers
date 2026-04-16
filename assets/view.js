@@ -2,6 +2,36 @@ CTFd._internal.challenge.preRender = function() {};
 CTFd._internal.challenge.postRender = function() {
     const $ = window.$ || CTFd.lib.$;
 
+    const data = CTFd._internal.challenge.data;
+    const $container = $('#ba-questions-container');
+    const template = $('#ba-question-template').html();
+
+    if (data && data.questions && template && $container.length) {
+        $container.empty();
+        data.questions.forEach(q => {
+            const $row = $(template);
+            $row.attr('data-question-id', q.id);
+            if (q.category) {
+                $row.addClass(q.category);
+            }
+            $row.find('.ba-metadata').text(`${q.title} - ${q.points} points`);
+            
+            const $inputWrapper = $row.find('.ba-input-wrapper');
+            if (q.solved) {
+                $inputWrapper.append(`
+                    <input type="password" value="${q.provided || ''}" data-question-id="${q.id}" readonly disabled class="better-answer-input" style="background: #f9f9f9;">
+                    <i aria-hidden="true" class="eye icon link toggle-answer-visibility" style="color: #2185d0;"></i>
+                `);
+            } else {
+                $inputWrapper.append(`
+                    <input type="text" placeholder="Answer..." data-question-id="${q.id}" class="better-answer-input">
+                    <i aria-hidden="true" class="right arrow circular icon link better-answer-submit" style="color: #00af29;"></i>
+                `);
+            }
+            $container.append($row);
+        });
+    }
+
     // Toggle visibility for solved questions
     $('body').off('click', '.toggle-answer-visibility').on('click', '.toggle-answer-visibility', function () {
         const $icon = $(this);
@@ -23,7 +53,7 @@ CTFd._internal.challenge.postRender = function() {
         const submission = $input.val();
         
         // Find challenge ID from CTFd context
-        const challengeId = $('#ba-challenge-id').val() || $('#challenge-id').val() || window.CHALLENGE_ID || (CTFd._internal.challenge.data && CTFd._internal.challenge.data.id);
+        const challengeId = $('#ba-challenge-id').val() || $('#challenge-id').val() || window.CHALLENGE_ID || (data && data.id);
 
         if (!submission) return;
 

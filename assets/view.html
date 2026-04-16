@@ -10,32 +10,11 @@
                 <p>{{ challenge.description | safe }}</p>
                 <div class="ui divider"></div>
                 
-                {% raw %}
                 <table class="ui table very basic celled">
-                    <tbody>
-                        {% for q in challenge.questions %}
-                        <tr data-question-id="{{ q.id }}" class="{{ q.category }}">
-                            <td class="ten wide">
-                                <div>
-                                    <div class="metadata" style="margin-bottom: 0.5rem; font-weight: bold;">{{ q.title }} - {{ q.points }} points</div>
-                                </div>
-                            </td>
-                            <td class="six wide center aligned">
-                                <div class="ui fluid input icon" style="min-width: 200px;">
-                                    {% if q.solved %}
-                                    <input type="password" value="{{ q.provided }}" data-question-id="{{ q.id }}" readonly disabled class="better-answer-input" style="background: #f9f9f9;">
-                                    <i aria-hidden="true" class="eye icon link toggle-answer-visibility" style="color: #2185d0;"></i>
-                                    {% else %}
-                                    <input type="text" placeholder="Answer..." data-question-id="{{ q.id }}" class="better-answer-input">
-                                    <i aria-hidden="true" class="right arrow circular icon link better-answer-submit" style="color: #00af29;"></i>
-                                    {% endif %}
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
+                    <tbody id="ba-questions-container">
+                        <!-- Questions injected by view.js -->
                     </tbody>
                 </table>
-                {% endraw %}
                 
                 <div class="ui error message better-answer-error" style="display: none;"></div>
                 <div class="ui success message better-answer-success" style="display: none;"></div>
@@ -43,3 +22,18 @@
         </div>
     </div>
 </div>
+
+<template id="ba-question-template">
+    <tr data-question-id="" class="">
+        <td class="ten wide">
+            <div>
+                <div class="metadata ba-metadata" style="margin-bottom: 0.5rem; font-weight: bold;"></div>
+            </div>
+        </td>
+        <td class="six wide center aligned">
+            <div class="ui fluid input icon ba-input-wrapper" style="min-width: 200px;">
+                <!-- Inputs injected dynamically by view.js -->
+            </div>
+        </td>
+    </tr>
+</template>
