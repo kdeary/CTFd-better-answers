@@ -2,14 +2,6 @@ CTFd._internal.challenge.preRender = function() {};
 CTFd._internal.challenge.postRender = function() {
     const $ = window.$ || CTFd.lib.$;
     
-    // Fix native grid layout spacing
-    const $modal = $('#challenge-window').length ? $('#challenge-window') : $(document);
-    $modal.find('.submit-row > .col-sm-8').removeClass('col-sm-8').addClass('col-sm-12');
-    $modal.find('.submit-row > .col-sm-4').hide();
-    
-    // Expand the modal width to give the custom multi-question table breathing room
-    $modal.find('.modal-dialog').removeClass('modal-sm').addClass('modal-lg');
-    
     // Fallback challenge ID detection
     const chalId = $('#ba-challenge-id').val() || $('#challenge-id').val() || window.CHALLENGE_ID;
     
@@ -18,7 +10,7 @@ CTFd._internal.challenge.postRender = function() {
 
     console.log('post render fired',chalId, data)
 
-    function renderQuestions(questions) {
+     function renderQuestions(questions) {
         // Poll for the container because Alpine.js x-html DOM hydration is asynchronous
         let pollCount = 0;
         const checkExist = setInterval(function() {
@@ -28,6 +20,13 @@ CTFd._internal.challenge.postRender = function() {
             
             if ($container.length) {
                 clearInterval(checkExist);
+                
+                // Fix native grid layout spacing
+                $modal.find('.submit-row > .col-sm-8').removeClass('col-sm-8').addClass('col-sm-12');
+                $modal.find('.submit-row > .col-sm-4').hide();
+                
+                // Expand the modal width to give the custom multi-question table breathing room
+                $modal.find('.modal-dialog').removeClass('modal-sm').addClass('modal-lg');
                 
                 $container.empty();
                 questions.forEach(q => {
