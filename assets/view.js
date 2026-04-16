@@ -1,3 +1,4 @@
+CTFd._internal.challenge.preRender = function() {};
 CTFd._internal.challenge.postRender = function() {
     const $ = window.$ || CTFd.lib.$;
     
