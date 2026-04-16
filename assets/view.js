@@ -32,12 +32,12 @@ CTFd._internal.challenge.postRender = function() {
                 questions.forEach(q => {
                     const templateStr = `
                         <tr data-question-id="${q.id}" class="${q.category ? q.category : ''}">
-                            <td class="w-75">
+                            <td class="w-50">
                                 <div>
                                     <div class="metadata ba-metadata" style="margin-bottom: 0.5rem; font-weight: bold;">${q.title} - ${q.points} points</div>
                                 </div>
                             </td>
-                            <td class="w-25">
+                            <td class="w-50">
                                 <div class="input-group ba-input-wrapper">
                                 </div>
                             </td>
