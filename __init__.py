@@ -89,14 +89,12 @@ class BetterAnswersChallengeType(BaseChallenge):
 
         # Handle questions if provided
         if "questions" in data:
-            # Simple approach: clear and rebuild or update existing
-            # For robustness, we'll matching by ID
             incoming_questions = data["questions"]
-            existing_questions = {q.id: q for q in BetterAnswersQuestion.query.filter_by(challenge_id=challenge.id).all()}
+            existing_questions = {str(q.id): q for q in BetterAnswersQuestion.query.filter_by(challenge_id=challenge.id).all()}
             
             keep_ids = []
             for q_data in incoming_questions:
-                q_id = q_data.get("id")
+                q_id = str(q_data.get("id")) if q_data.get("id") else None
                 if q_id and q_id in existing_questions:
                     q = existing_questions[q_id]
                     for k, v in q_data.items():
@@ -107,7 +105,7 @@ class BetterAnswersChallengeType(BaseChallenge):
                     new_q = BetterAnswersQuestion(challenge_id=challenge.id, **q_data)
                     db.session.add(new_q)
                     db.session.flush() # Get ID
-                    keep_ids.append(new_q.id)
+                    keep_ids.append(str(new_q.id))
             
             # Delete questions not in keep_ids
             for eid in existing_questions:
@@ -194,12 +192,12 @@ class BetterAnswersChallengeType(BaseChallenge):
 
             # Check if all questions solved
             total_questions = BetterAnswersQuestion.query.filter_by(challenge_id=challenge.id).count()
-            solved_questions_count = BetterAnswersSubmission.query.filter_by(
+            solved_questions_count = db.session.query(db.func.count(db.func.distinct(BetterAnswersSubmission.question_id))).filter_by(
                 challenge_id=challenge.id,
                 user_id=user_id,
                 team_id=team_id,
                 correct=True
-            ).group_by(BetterAnswersSubmission.question_id).count()
+            ).scalar()
 
             if solved_questions_count == total_questions:
                 # Cleanup awards
@@ -223,14 +221,28 @@ class BetterAnswersChallengeType(BaseChallenge):
             return False, "Incorrect"
 
     @staticmethod
-    def solve(team, chal, request):
-        # The core logic in BaseChallenge handles Solves creation
-        BaseChallenge.solve(team, chal, request)
+    def solve(user, team, challenge, request):
+        user_id = user.id if user else None
+        team_id = team.id if team else None
+
+        total_questions = BetterAnswersQuestion.query.filter_by(challenge_id=challenge.id).count()
+        solved_questions_count = db.session.query(db.func.count(db.func.distinct(BetterAnswersSubmission.question_id))).filter_by(
+            challenge_id=challenge.id,
+            user_id=user_id,
+            team_id=team_id,
+            correct=True
+        ).scalar()
+        
+        if solved_questions_count == total_questions:
+            # Actually solved! Let core handle it.
+            BaseChallenge.solve(user, team, challenge, request)
+        else:
+            # Partial solve, do not create a generic `Solves` record!
+            pass
 
     @staticmethod
-    def fail(team, chal, request):
-        # The core logic in BaseChallenge handles Fails logging
-        BaseChallenge.fail(team, chal, request)
+    def fail(user, team, challenge, request):
+        BaseChallenge.fail(user, team, challenge, request)
 
 def load(app):
     app.db.create_all()

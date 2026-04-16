@@ -23,7 +23,7 @@ $(document).ready(function () {
         
         // Find challenge ID from CTFd context
         // Usually CTFd sets a variable or we can find it in the modal
-        const challengeId = $('#challenge-id').val() || window.CHALLENGE_ID;
+        const challengeId = $('#ba-challenge-id').val() || $('#challenge-id').val() || window.CHALLENGE_ID;
 
         if (!submission) return;
 

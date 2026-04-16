@@ -1,61 +1,63 @@
-<div class="form-group">
-	<label>
-		Name:<br>
-		<small class="form-text text-muted">
-			The name of your challenge
-		</small>
-	</label>
-	<input type="text" class="form-control" name="name" placeholder="Enter challenge name">
-</div>
+<form id="challenge-create-form" method="POST">
+	<div class="form-group">
+		<label>
+			Name:<br>
+			<small class="form-text text-muted">
+				The name of your challenge
+			</small>
+		</label>
+		<input type="text" class="form-control" name="name" placeholder="Enter challenge name">
+	</div>
 
-<div class="form-group">
-	<label>
-		Category:<br>
-		<small class="form-text text-muted">
-			The category of your challenge
-		</small>
-	</label>
-	<input type="text" class="form-control" name="category" placeholder="Enter challenge category">
-</div>
+	<div class="form-group">
+		<label>
+			Category:<br>
+			<small class="form-text text-muted">
+				The category of your challenge
+			</small>
+		</label>
+		<input type="text" class="form-control" name="category" placeholder="Enter challenge category">
+	</div>
 
 
-<div class="form-group">
-	<label>
-		Message:<br>
-		<small class="form-text text-muted">
-			Use this to give a brief introduction to your challenge.
-		</small>
-	</label>
-	<textarea id="new-desc-editor" class="form-control markdown" name="description" rows="10"></textarea>
-</div>
+	<div class="form-group">
+		<label>
+			Message:<br>
+			<small class="form-text text-muted">
+				Use this to give a brief introduction to your challenge.
+			</small>
+		</label>
+		<textarea id="new-desc-editor" class="form-control markdown" name="description" rows="10"></textarea>
+	</div>
 
-<div class="form-group">
-	<label>
-		Initial Value:<br>
-		<small class="form-text text-muted">
-			Total points are calculated from sub-questions. This is the starting value.
-		</small>
-	</label>
-	<input type="number" class="form-control" name="value" placeholder="Enter value" value="0" required>
-</div>
+	<div class="form-group">
+		<label>
+			Initial Value:<br>
+			<small class="form-text text-muted">
+				Total points are calculated from sub-questions. This is the starting value.
+			</small>
+		</label>
+		<input type="number" class="form-control" name="value" placeholder="Enter value" value="0" required>
+	</div>
 
-<div class="form-group">
-	<label>
-		State:<br>
-		<small class="form-text text-muted">
-			The state of the challenge (Visible/Hidden)
-		</small>
-	</label>
-	<select class="form-control custom-select" name="state">
-		<option value="hidden">Hidden</option>
-		<option value="visible">Visible</option>
-	</select>
-</div>
+	<div class="form-group">
+		<label>
+			State:<br>
+			<small class="form-text text-muted">
+				The state of the challenge (Visible/Hidden)
+			</small>
+		</label>
+		<select class="form-control custom-select" name="state">
+			<option value="hidden">Hidden</option>
+			<option value="visible">Visible</option>
+		</select>
+	</div>
 
-<input type="hidden" name="type" value="better_answers">
+	<input type="hidden" name="type" value="better_answers">
 
-<div class="form-group">
-	<button class="btn btn-primary float-right create-challenge-submit" type="submit">
-		Create
-	</button>
-</div>
+	<div class="form-group">
+		<button class="btn btn-primary float-right create-challenge-submit" type="submit">
+			Create
+		</button>
+	</div>
+</form>

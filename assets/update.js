@@ -34,7 +34,7 @@ $(document).ready(function () {
     });
 });
 
-CTFd.plugin.challenge.update = function (success, error) {
+CTFd.plugin.challenge.update = function (event, cb) {
     const data = $('#challenge-update-container form').serializeJSON(true);
     data.questions = [];
 
@@ -53,9 +53,14 @@ CTFd.plugin.challenge.update = function (success, error) {
 
     CTFd.api.patch_challenge(window.CHALLENGE_ID, data).then(response => {
         if (response.success) {
-            success();
+            cb();
         } else {
-            error(response);
+            console.error(response);
+            CTFd.ui.toast.create({
+                title: "Error Updating Challenge",
+                body: "Check the console for more details.",
+                icon: "danger"
+            });
         }
     });
 };

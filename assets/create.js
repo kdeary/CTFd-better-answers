@@ -1,10 +1,15 @@
-CTFd.plugin.challenge.create = function (success, error) {
+CTFd.plugin.challenge.create = function (event, cb) {
     const data = $('#challenge-create-form').serializeJSON(true);
     CTFd.api.post_challenge(data).then(response => {
         if (response.success) {
-            success();
+            cb();
         } else {
-            error(response);
+            console.error(response);
+            CTFd.ui.toast.create({
+                title: "Error Creating Challenge",
+                body: "Check the console for more details.",
+                icon: "danger"
+            });
         }
     });
 };
