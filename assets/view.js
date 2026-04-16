@@ -32,13 +32,13 @@ CTFd._internal.challenge.postRender = function() {
                 questions.forEach(q => {
                     const templateStr = `
                         <tr data-question-id="${q.id}" class="${q.category ? q.category : ''}">
-                            <td class="ten wide">
+                            <td class="w-75">
                                 <div>
                                     <div class="metadata ba-metadata" style="margin-bottom: 0.5rem; font-weight: bold;">${q.title} - ${q.points} points</div>
                                 </div>
                             </td>
-                            <td class="six wide center aligned">
-                                <div class="ui fluid input icon ba-input-wrapper" style="min-width: 200px;">
+                            <td class="w-25">
+                                <div class="input-group ba-input-wrapper">
                                 </div>
                             </td>
                         </tr>
@@ -48,13 +48,17 @@ CTFd._internal.challenge.postRender = function() {
                     const $inputWrapper = $row.find('.ba-input-wrapper');
                     if (q.solved) {
                         $inputWrapper.append(`
-                            <input type="password" value="${q.provided || ''}" data-question-id="${q.id}" readonly disabled class="better-answer-input" style="background: #f9f9f9;">
-                            <i aria-hidden="true" class="eye icon link toggle-answer-visibility" style="color: #2185d0;"></i>
+                            <input type="password" value="${q.provided || ''}" data-question-id="${q.id}" readonly disabled class="form-control better-answer-input" style="background: #e9ecef;">
+                            <button class="btn btn-outline-secondary toggle-answer-visibility" type="button">
+                                <i class="fas fa-eye"></i>
+                            </button>
                         `);
                     } else {
                         $inputWrapper.append(`
-                            <input type="text" placeholder="Answer..." data-question-id="${q.id}" class="better-answer-input">
-                            <i aria-hidden="true" class="right arrow circular icon link better-answer-submit" style="color: #00af29;"></i>
+                            <input type="text" placeholder="Answer..." data-question-id="${q.id}" class="form-control better-answer-input">
+                            <button class="btn btn-success better-answer-submit" type="button">
+                                Submit
+                            </button>
                         `);
                     }
                     $container.append($row);
@@ -81,14 +85,15 @@ CTFd._internal.challenge.postRender = function() {
 
     // Toggle visibility for solved questions
     $('body').off('click', '.toggle-answer-visibility').on('click', '.toggle-answer-visibility', function () {
-        const $icon = $(this);
-        const $input = $icon.siblings('.better-answer-input');
+        const $btn = $(this);
+        const $icon = $btn.find('i');
+        const $input = $btn.siblings('.better-answer-input');
         if ($input.attr('type') === 'password') {
             $input.attr('type', 'text');
-            $icon.removeClass('eye').addClass('eye slash');
+            $icon.removeClass('fa-eye').addClass('fa-eye-slash');
         } else {
             $input.attr('type', 'password');
-            $icon.removeClass('eye slash').addClass('eye');
+            $icon.removeClass('fa-eye-slash').addClass('fa-eye');
         }
     });
 
