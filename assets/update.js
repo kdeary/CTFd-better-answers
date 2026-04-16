@@ -51,7 +51,14 @@ $(document).ready(function () {
 
         console.log("DEBUG: Updating challenge with data:", data);
 
-        CTFd.api.patch_challenge(window.CHALLENGE_ID, data).then(response => {
+        CTFd.fetch(`/api/v1/challenges/${window.CHALLENGE_ID}`, {
+            method: 'PATCH',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        }).then(response => response.json()).then(response => {
             if (response.success) {
                 console.log("DEBUG: Update successful.");
                 CTFd.ui.toast.create({
@@ -67,6 +74,13 @@ $(document).ready(function () {
                     icon: "danger"
                 });
             }
+        }).catch(err => {
+            console.error("DEBUG: Exception while updating challenge:", err);
+            CTFd.ui.toast.create({
+                title: "Error Updating Challenge",
+                body: "Check the console for more details.",
+                icon: "danger"
+            });
         });
     });
 });
