@@ -34,7 +34,8 @@ $(document).ready(function () {
     $('#submit-better-answers-update').click(function(e) {
         e.preventDefault();
         
-        const data = $('#challenge-update-container form').serializeJSON(true);
+        let data = $(this).closest('form').serializeJSON(true);
+        if (!data) data = {};
         data.questions = [];
 
         $('#questions-container .question-item').each(function () {
