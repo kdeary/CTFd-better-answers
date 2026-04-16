@@ -1,39 +1,21 @@
-<div class="modal-dialog" role="document">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h5 class="modal-title">{{ challenge.name }}</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-            <div class="better-answers-container" style="max-height: 500px; overflow-y: auto; padding: 10px;">
-                <input type="hidden" id="ba-challenge-id" value="{{ challenge.id }}">
-                <p>{{ challenge.description | safe }}</p>
-                <div class="ui divider"></div>
-                
-                <table class="ui table very basic celled">
-                    <tbody id="ba-questions-container">
-                        <!-- Questions injected by view.js -->
-                    </tbody>
-                </table>
-                
-                <div class="ui error message better-answer-error" style="display: none;"></div>
-                <div class="ui success message better-answer-success" style="display: none;"></div>
-                
-                <template id="ba-question-template">
-                    <tr data-question-id="" class="">
-                        <td class="ten wide">
-                            <div>
-                                <div class="metadata ba-metadata" style="margin-bottom: 0.5rem; font-weight: bold;"></div>
-                            </div>
-                        </td>
-                        <td class="six wide center aligned">
-                            <div class="ui fluid input icon ba-input-wrapper" style="min-width: 200px;">
-                                <!-- Inputs injected dynamically by view.js -->
-                            </div>
-                        </td>
-                    </tr>
-                </template>
-            </div>
-        </div>
-    </div>
+{% extends "challenge.html" %}
+
+{% block input %}
+<div class="better-answers-container" style="max-height: 500px; overflow-y: auto; padding: 10px;">
+    <input type="hidden" id="ba-challenge-id" value="{{ challenge.id }}">
+    <div class="ui divider"></div>
+    
+    <table class="ui table very basic celled">
+        <tbody id="ba-questions-container">
+            <!-- Questions injected by view.js -->
+        </tbody>
+    </table>
+    
+    <div class="ui error message better-answer-error" style="display: none;"></div>
+    <div class="ui success message better-answer-success" style="display: none;"></div>
 </div>
+{% endblock %}
+
+{% block submit %}
+<!-- The standard submit button is intentionally hidden. Each custom question provides its own submit button inline. -->
+{% endblock %}
