@@ -10,6 +10,7 @@
                 <p>{{ challenge.description | safe }}</p>
                 <div class="ui divider"></div>
                 
+                {% raw %}
                 <table class="ui table very basic celled">
                     <tbody>
                         {% for q in challenge.questions %}
@@ -34,6 +35,7 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                {% endraw %}
                 
                 <div class="ui error message better-answer-error" style="display: none;"></div>
                 <div class="ui success message better-answer-success" style="display: none;"></div>
