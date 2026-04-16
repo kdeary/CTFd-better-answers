@@ -62,26 +62,15 @@ $(document).ready(function () {
         }).then(response => response.json()).then(response => {
             if (response.success) {
                 console.log("DEBUG: Update successful.");
-                CTFd.ui.toast.create({
-                    title: "Update Successful",
-                    body: "Challenge details and custom questions saved successfully.",
-                    icon: "success"
-                });
+                alert("Challenge details and custom questions saved successfully.");
+                window.location.reload();
             } else {
                 console.error(response);
-                CTFd.ui.toast.create({
-                    title: "Error Updating Challenge",
-                    body: "Check the console for more details.",
-                    icon: "danger"
-                });
+                alert("Error Updating Challenge: Check the console for more details.");
             }
         }).catch(err => {
             console.error("DEBUG: Exception while updating challenge:", err);
-            CTFd.ui.toast.create({
-                title: "Error Updating Challenge",
-                body: "Check the console for more details.",
-                icon: "danger"
-            });
+            alert("Error Updating Challenge: Check the console for more details.");
         });
     });
 });

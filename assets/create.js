@@ -12,18 +12,10 @@ CTFd.plugin.challenge.create = function (event, cb) {
             cb();
         } else {
             console.error(response);
-            CTFd.ui.toast.create({
-                title: "Error Creating Challenge",
-                body: "Check the console for more details.",
-                icon: "danger"
-            });
+            alert("Error Creating Challenge: Check the console for more details.");
         }
     }).catch(err => {
         console.error("DEBUG: Exception while creating challenge:", err);
-        CTFd.ui.toast.create({
-            title: "Error Creating Challenge",
-            body: "Check the console for more details.",
-            icon: "danger"
-        });
+        alert("Error Creating Challenge: Check the console for more details.");
     });
 };
