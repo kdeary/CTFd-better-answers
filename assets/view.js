@@ -1,11 +1,4 @@
-CTFd._internal.challenge.data = undefined;
-
 CTFd._internal.challenge.preRender = function() {};
-
-CTFd._internal.challenge.render = function(markdown) {
-    return markdown;
-};
-
 CTFd._internal.challenge.postRender = function() {
     const $ = window.$ || CTFd.lib.$;
 
@@ -65,8 +58,4 @@ CTFd._internal.challenge.postRender = function() {
             console.error("Submission error:", err);
         });
     });
-};
-
-CTFd._internal.challenge.submit = function(preview) {
-    // Custom challenge uses its own per-question submit logic above.
 };
