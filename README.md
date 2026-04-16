@@ -16,7 +16,7 @@ A CTFd plugin that introduces a new challenge type: **Better Answers**. This cha
 1. Clone or copy this directory into the `CTFd/plugins/` folder of your CTFd installation.
    ```bash
    cd CTFd/plugins/
-   git clone <repository-url> better-answers
+   git clone https://github.com/kdeary/CTFd-better-answers.git better-answers
    ```
 2. Restart your CTFd instance. The plugin will automatically create the necessary database tables upon startup.
 3. Log in as an administrator.
