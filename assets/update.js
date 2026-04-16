@@ -1,8 +1,11 @@
 $(document).ready(function () {
     const $container = $('#questions-container');
-    const template = $('#question-template').html();
-
     function addQuestion(data = {}) {
+        const template = $('#question-template').html();
+        if (!template) {
+            console.error("DEBUG PLUGIN BetterAnswers: Could not find #question-template inside the DOM.");
+            return;
+        }
         const $row = $(template);
         if (data.id) $row.find('.question-id').val(data.id);
         $row.find('.question-title').val(data.title || '');
@@ -21,7 +24,9 @@ $(document).ready(function () {
 
     // Initial load of questions
     // Since this is the update page, window.CHALLENGE_ID is available
-    CTFd.api.get_challenge(window.CHALLENGE_ID).then(response => {
+    CTFd.fetch(`/api/v1/challenges/${window.CHALLENGE_ID}`, {
+        method: 'GET'
+    }).then(response => response.json()).then(response => {
         if (response.success) {
             const questions = response.data.questions || [];
             if (questions.length > 0) {
@@ -30,6 +35,8 @@ $(document).ready(function () {
                 addQuestion(); // Add one row by default if empty
             }
         }
+    }).catch(err => {
+        console.error("DEBUG: Exception while fetching challenge data:", err);
     });
     $('#submit-better-answers-update').click(function(e) {
         e.preventDefault();
