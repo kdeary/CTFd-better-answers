@@ -1,13 +1,167 @@
-<div class="form-group">
-    <label>Challenge Questions</label>
-    <div id="questions-container">
-        <!-- Dynamic questions list -->
-    </div>
-    <div class="text-right">
-        <button type="button" class="btn btn-outline-success btn-sm mt-2" id="add-question-btn">
-            <i class="fa fa-plus"></i> Add Question
-        </button>
-    </div>
+<div class="row">
+
+	<!-- Left Pane: Native CTFd Components -->
+	<div class="col-md-6">
+		<nav class="nav nav-tabs nav-fill" id="challenge-properties" role="tablist">
+			<a class="nav-item nav-link small active" data-toggle="tab" href="#files" role="tab" aria-selected="true">Files</a>
+			<!-- Flags tab is generally hidden for this type since we answer it internally, but CTFd expects the DOM, so leave empty/hidden -->
+			<!-- <a class="nav-item nav-link small" data-toggle="tab" href="#flags" role="tab" aria-selected="false">Flags</a> -->
+			<a class="nav-item nav-link small" data-toggle="tab" href="#solution" role="tab" aria-selected="false">Solution</a>
+			<a class="nav-item nav-link small" data-toggle="tab" href="#topics" role="tab" aria-selected="false">Topics</a>
+			<a class="nav-item nav-link small" data-toggle="tab" href="#tags" role="tab" aria-selected="false">Tags</a>
+			<a class="nav-item nav-link small" data-toggle="tab" href="#hints" role="tab" aria-selected="false">Hints</a>
+			<a class="nav-item nav-link small" data-toggle="tab" href="#requirements" role="tab" aria-selected="false">Requirements</a>
+			<a class="nav-item nav-link small" data-toggle="tab" href="#next" role="tab" aria-selected="false">Next</a>
+		</nav>
+
+		<div class="tab-content" id="nav-tabContent">
+			<div class="tab-pane fade active show" id="files" role="tabpanel">
+				<div class="row">
+					<div class="col-md-12">
+						<h3 class="text-center py-3 d-block">Files</h3>
+						<div id="challenge-files"></div>
+					</div>
+				</div>
+			</div>
+			<!--
+			<div class="tab-pane fade" id="flags" role="tabpanel">
+				<div class="row">
+					<div class="col-md-12">
+						<h3 class="text-center py-3 d-block">Flags</h3>
+						<div id="challenge-flags"></div>
+					</div>
+				</div>
+			</div>
+			-->
+			<div class="tab-pane fade" id="solution" role="tabpanel">
+				<div class="row">
+					<div class="col-md-12">
+						<h3 class="text-center py-3 d-block">Solution</h3>
+						<div id="challenge-solution"></div>
+					</div>
+				</div>
+			</div>
+			<div class="tab-pane fade" id="topics" role="tabpanel">
+				<div class="row">
+					<div class="col-md-12">
+						<h3 class="text-center py-3 d-block">Topics</h3>
+						<div id="challenge-topics"></div>
+					</div>
+				</div>
+			</div>
+			<div class="tab-pane fade" id="tags" role="tabpanel">
+				<div class="row">
+					<div class="col-md-12">
+						<h3 class="text-center py-3 d-block">Tags</h3>
+						<div id="challenge-tags"></div>
+					</div>
+				</div>
+			</div>
+			<div class="tab-pane fade" id="hints" role="tabpanel">
+				<div class="row">
+					<div class="col-md-12">
+						<h3 class="text-center py-3 d-block">Hints</h3>
+						<div id="challenge-hints"></div>
+					</div>
+				</div>
+			</div>
+			<div class="tab-pane fade" id="requirements" role="tabpanel">
+				<div class="row">
+					<div class="col-md-12">
+						<h3 class="text-center py-3 d-block">Requirements</h3>
+						<div id="challenge-requirements"></div>
+					</div>
+				</div>
+			</div>
+			<div class="tab-pane fade" id="next" role="tabpanel">
+				<div class="row">
+					<div class="col-md-12">
+						<h3 class="text-center py-3 d-block">Next Challenge</h3>
+						<div id="challenge-next"></div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Right Pane: Challenge Form and Custom Questions -->
+	<div id="challenge-update-container" class="col-md-6">
+		<form method="POST">
+			
+			<div class="form-group">
+				<label>
+					Name<br>
+					<small class="form-text text-muted">Challenge Name</small>
+				</label>
+				<input type="text" class="form-control chal-name" id="name" name="name" value="{{ challenge.name }}">
+			</div>
+
+			<div class="form-group">
+				<label>
+					Category<br>
+					<small class="form-text text-muted">Challenge Category</small>
+				</label>
+				<input type="text" class="form-control chal-category" id="category" name="category" value="{{ challenge.category }}">
+			</div>
+
+			<div class="form-group">
+				<label>
+					Message<br>
+					<small class="form-text text-muted">
+						Use this to give a brief introduction to your challenge.
+					</small>
+				</label>
+				<textarea id="description" class="form-control chal-desc-editor markdown" name="description" rows="10">{{ challenge.description }}</textarea>
+			</div>
+			
+			<div class="form-group">
+				<label>
+					Max Attempts<br>
+					<small class="form-text text-muted">Maximum amount of attempts for the challenge overall. Set internally by custom fields per-question instead.</small>
+				</label>
+				<input type="number" class="form-control chal-attempts" id="max_attempts" name="max_attempts" value="{{ challenge.max_attempts }}">
+			</div>
+
+			<div class="form-group">
+				<label>
+					State<br>
+					<small class="form-text text-muted">Changes the state of the challenge (e.g. visible, hidden)</small>
+				</label>
+				<select class="form-control custom-select" id="state" name="state">
+					<option value="visible" {% if challenge.state == 'visible' %}selected{% endif %}>Visible</option>
+					<option value="hidden" {% if challenge.state == 'hidden' %}selected{% endif %}>Hidden</option>
+				</select>
+			</div>
+
+			<input type="hidden" id="value" name="value" value="{{ challenge.value }}">
+			<input type="hidden" name="type" value="better_answers">
+			
+			<hr>
+
+			<!-- Custom Questions Container -->
+			<div class="form-group">
+				<label>Challenge Questions</label> <br>
+				<small class="form-text text-muted">Total value is updated automatically based on sum of question points.</small>
+				<div class="mt-3" id="questions-container">
+					<!-- Dynamic questions list handled by JS -->
+				</div>
+				<div class="text-right">
+					<button type="button" class="btn btn-outline-success btn-sm mt-2" id="add-question-btn">
+						<i class="fa fa-plus"></i> Add Question
+					</button>
+				</div>
+			</div>
+
+			<hr>
+
+			<div>
+				<button class="btn btn-success btn-outlined float-right" type="submit">
+					Update
+				</button>
+			</div>
+			
+		</form>
+	</div>
 </div>
 
 <style>
@@ -31,12 +185,12 @@
                 <input type="number" class="form-control question-points" placeholder="10" required>
             </div>
             <div class="col-md-3">
-                <label class="small">Max Attempts</label>
-                <input type="number" class="form-control question-attempts" placeholder="0 (Unlimited)">
+                <label class="small">Attempts limit</label>
+                <input type="number" class="form-control question-attempts" placeholder="0 (Unltd.)">
             </div>
             <div class="col-md-3">
                 <label class="small">Ref Class</label>
-                <input type="text" class="form-control question-category" placeholder="TEXT / IPv4">
+                <input type="text" class="form-control question-category" placeholder="e.g. IPv4">
             </div>
         </div>
         <div class="form-group mb-2">

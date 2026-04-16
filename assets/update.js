@@ -35,15 +35,8 @@ $(document).ready(function () {
 });
 
 CTFd.plugin.challenge.update = function (success, error) {
-    const data = {
-        name: $('#name').val(),
-        category: $('#category').val(),
-        description: $('#description').val(),
-        value: $('#value').val(),
-        state: $('#state').val(),
-        max_attempts: $('#max_attempts').val(),
-        questions: []
-    };
+    const data = $('#challenge-update-container form').serializeJSON(true);
+    data.questions = [];
 
     $('.question-item').each(function () {
         const $el = $(this);

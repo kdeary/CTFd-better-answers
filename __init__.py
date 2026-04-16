@@ -9,18 +9,22 @@ from .models import BetterAnswersChallenge, BetterAnswersQuestion, BetterAnswers
 class BetterAnswersChallengeType(BaseChallenge):
     id = "better_answers"
     name = "better_answers"
+    challenge_model = BetterAnswersChallenge
+
     templates = {
-        "create": "/plugins/better-answers/assets/create.html",
-        "update": "/plugins/better-answers/assets/update.html",
-        "view": "/plugins/better-answers/assets/view.html",
+        "create": f"/plugins/better-answers/assets/create.html",
+        "update": f"/plugins/better-answers/assets/update.html",
+        "view": f"/plugins/better-answers/assets/view.html",
     }
     scripts = {
-        "create": "/plugins/better-answers/assets/create.js",
-        "update": "/plugins/better-answers/assets/update.js",
-        "view": "/plugins/better-answers/assets/view.js",
+        "create": f"/plugins/better-answers/assets/create.js",
+        "update": f"/plugins/better-answers/assets/update.js",
+        "view": f"/plugins/better-answers/assets/view.js",
     }
-    route = "/plugins/better-answers/assets/"
-    challenge_model = BetterAnswersChallenge
+
+    @classmethod
+    def get_plugin_name(cls):
+        return __name__.split('.')[-1]
 
     @staticmethod
     def create(request):
@@ -219,12 +223,17 @@ class BetterAnswersChallengeType(BaseChallenge):
             return False, "Incorrect"
 
     @staticmethod
-    def solve(user, team, challenge, request):
-        # We don't need to do anything extra here as the core logic handles Solves creation
-        # but we could add extra logging if needed.
-        super(BetterAnswersChallengeType, BetterAnswersChallengeType).solve(user, team, challenge, request)
+    def solve(team, chal, request):
+        # The core logic in BaseChallenge handles Solves creation
+        BaseChallenge.solve(team, chal, request)
+
+    @staticmethod
+    def fail(team, chal, request):
+        # The core logic in BaseChallenge handles Fails logging
+        BaseChallenge.fail(team, chal, request)
 
 def load(app):
     app.db.create_all()
+    plugin_name = __name__.split('.')[-1]
     CHALLENGE_CLASSES["better_answers"] = BetterAnswersChallengeType
-    register_plugin_assets_directory(app, base_path="/plugins/better-answers/assets/")
+    register_plugin_assets_directory(app, base_path=f"/plugins/{plugin_name}/assets/")
