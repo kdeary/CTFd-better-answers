@@ -34,8 +34,8 @@ class BetterAnswersChallengeType(BaseChallenge):
         db.session.commit()
         return challenge
 
-    @staticmethod
-    def read(challenge):
+    @classmethod
+    def read(cls, challenge):
         user = get_current_user()
         team = get_current_team()
         user_id = user.id if user else None
@@ -73,6 +73,12 @@ class BetterAnswersChallengeType(BaseChallenge):
             "state": challenge.state,
             "max_attempts": challenge.max_attempts,
             "type": challenge.type,
+            "type_data": {
+                "id": cls.id,
+                "name": cls.name,
+                "templates": cls.templates,
+                "scripts": cls.scripts,
+            },
             "questions": q_list,
         }
         return data
@@ -90,11 +96,23 @@ class BetterAnswersChallengeType(BaseChallenge):
         # Handle questions if provided
         if "questions" in data:
             incoming_questions = data["questions"]
+            print(f"DEBUG PLUGIN BetterAnswers: update routine fired for ID {challenge.id}. Updating questions: {incoming_questions}")
             existing_questions = {str(q.id): q for q in BetterAnswersQuestion.query.filter_by(challenge_id=challenge.id).all()}
             
             keep_ids = []
             for q_data in incoming_questions:
                 q_id = str(q_data.get("id")) if q_data.get("id") else None
+                
+                # Sanitize ints
+                try:
+                    q_data["points"] = int(q_data.get("points") or 0)
+                except:
+                    q_data["points"] = 0
+                try:
+                    q_data["max_attempts"] = int(q_data.get("max_attempts") or 0)
+                except:
+                    q_data["max_attempts"] = 0
+
                 if q_id and q_id in existing_questions:
                     q = existing_questions[q_id]
                     for k, v in q_data.items():
@@ -102,6 +120,8 @@ class BetterAnswersChallengeType(BaseChallenge):
                             setattr(q, k, v)
                     keep_ids.append(q_id)
                 else:
+                    if "id" in q_data:
+                        del q_data["id"] # Never override autoincrement
                     new_q = BetterAnswersQuestion(challenge_id=challenge.id, **q_data)
                     db.session.add(new_q)
                     db.session.flush() # Get ID
@@ -162,7 +182,15 @@ class BetterAnswersChallengeType(BaseChallenge):
                 return False, "Attempt limit reached for this question"
 
         # Check answer
-        is_correct = (submission == question.answer)
+        if question.category == "regex":
+            import re
+            try:
+                res = re.match(question.answer, submission)
+                is_correct = bool(res and res.group() == submission)
+            except re.error:
+                is_correct = False
+        else:
+            is_correct = (submission == question.answer)
         
         # Log attempt
         sub = BetterAnswersSubmission(
