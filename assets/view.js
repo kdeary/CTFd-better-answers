@@ -11,47 +11,53 @@ CTFd._internal.challenge.postRender = function() {
     console.log('post render fired',chalId, data)
 
     function renderQuestions(questions) {
-        const $modal = $('#challenge-window').length ? $('#challenge-window') : $(document);
-        const $container = $modal.find('#ba-questions-container');
-        
-        console.log("BetterAnswers render payload:", {
-            foundContainer: $container.length,
-            questionCount: questions ? questions.length : 0
-        });
-
-        if (!$container.length) return;
-        
-        $container.empty();
-        questions.forEach(q => {
-            const templateStr = `
-                <tr data-question-id="${q.id}" class="${q.category ? q.category : ''}">
-                    <td class="ten wide">
-                        <div>
-                            <div class="metadata ba-metadata" style="margin-bottom: 0.5rem; font-weight: bold;">${q.title} - ${q.points} points</div>
-                        </div>
-                    </td>
-                    <td class="six wide center aligned">
-                        <div class="ui fluid input icon ba-input-wrapper" style="min-width: 200px;">
-                        </div>
-                    </td>
-                </tr>
-            `;
-            const $row = $(templateStr);
+        // Poll for the container because Alpine.js x-html DOM hydration is asynchronous
+        let pollCount = 0;
+        const checkExist = setInterval(function() {
+            pollCount++;
+            const $modal = $('#challenge-window').length ? $('#challenge-window') : $(document);
+            const $container = $modal.find('#ba-questions-container');
             
-            const $inputWrapper = $row.find('.ba-input-wrapper');
-            if (q.solved) {
-                $inputWrapper.append(`
-                    <input type="password" value="${q.provided || ''}" data-question-id="${q.id}" readonly disabled class="better-answer-input" style="background: #f9f9f9;">
-                    <i aria-hidden="true" class="eye icon link toggle-answer-visibility" style="color: #2185d0;"></i>
-                `);
-            } else {
-                $inputWrapper.append(`
-                    <input type="text" placeholder="Answer..." data-question-id="${q.id}" class="better-answer-input">
-                    <i aria-hidden="true" class="right arrow circular icon link better-answer-submit" style="color: #00af29;"></i>
-                `);
+            if ($container.length) {
+                clearInterval(checkExist);
+                
+                $container.empty();
+                questions.forEach(q => {
+                    const templateStr = `
+                        <tr data-question-id="${q.id}" class="${q.category ? q.category : ''}">
+                            <td class="ten wide">
+                                <div>
+                                    <div class="metadata ba-metadata" style="margin-bottom: 0.5rem; font-weight: bold;">${q.title} - ${q.points} points</div>
+                                </div>
+                            </td>
+                            <td class="six wide center aligned">
+                                <div class="ui fluid input icon ba-input-wrapper" style="min-width: 200px;">
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                    const $row = $(templateStr);
+                    
+                    const $inputWrapper = $row.find('.ba-input-wrapper');
+                    if (q.solved) {
+                        $inputWrapper.append(`
+                            <input type="password" value="${q.provided || ''}" data-question-id="${q.id}" readonly disabled class="better-answer-input" style="background: #f9f9f9;">
+                            <i aria-hidden="true" class="eye icon link toggle-answer-visibility" style="color: #2185d0;"></i>
+                        `);
+                    } else {
+                        $inputWrapper.append(`
+                            <input type="text" placeholder="Answer..." data-question-id="${q.id}" class="better-answer-input">
+                            <i aria-hidden="true" class="right arrow circular icon link better-answer-submit" style="color: #00af29;"></i>
+                        `);
+                    }
+                    $container.append($row);
+                });
+            } else if (pollCount > 40) {
+                // Timeout after ~2 seconds
+                clearInterval(checkExist);
+                console.error("BetterAnswers: Timeout waiting for #ba-questions-container to render.");
             }
-            $container.append($row);
-        });
+        }, 50); // Check every 50ms
     }
 
     if (data && data.questions) {
