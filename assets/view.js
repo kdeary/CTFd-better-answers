@@ -8,21 +8,35 @@ CTFd._internal.challenge.postRender = function() {
     // Safely get data
     let data = CTFd._internal.challenge.data;
 
+    console.log('post render fired',chalId, data)
+
     function renderQuestions(questions) {
         const $modal = $('#challenge-window').length ? $('#challenge-window') : $(document);
         const $container = $modal.find('#ba-questions-container');
-        const template = $modal.find('#ba-question-template').html();
         
-        if (!$container.length || !template) return;
+        console.log("BetterAnswers render payload:", {
+            foundContainer: $container.length,
+            questionCount: questions ? questions.length : 0
+        });
+
+        if (!$container.length) return;
         
         $container.empty();
         questions.forEach(q => {
-            const $row = $(template);
-            $row.attr('data-question-id', q.id);
-            if (q.category) {
-                $row.addClass(q.category);
-            }
-            $row.find('.ba-metadata').text(`${q.title} - ${q.points} points`);
+            const templateStr = `
+                <tr data-question-id="${q.id}" class="${q.category ? q.category : ''}">
+                    <td class="ten wide">
+                        <div>
+                            <div class="metadata ba-metadata" style="margin-bottom: 0.5rem; font-weight: bold;">${q.title} - ${q.points} points</div>
+                        </div>
+                    </td>
+                    <td class="six wide center aligned">
+                        <div class="ui fluid input icon ba-input-wrapper" style="min-width: 200px;">
+                        </div>
+                    </td>
+                </tr>
+            `;
+            const $row = $(templateStr);
             
             const $inputWrapper = $row.find('.ba-input-wrapper');
             if (q.solved) {
