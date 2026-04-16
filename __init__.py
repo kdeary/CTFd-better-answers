@@ -212,8 +212,7 @@ class BetterAnswersChallengeType(BaseChallenge):
                 team_id=team_id,
                 name=f"Partial Credit: {challenge.name} - {question.title}",
                 value=question.points,
-                category="Challenge",
-                challenge_id=challenge.id
+                category="Challenge"
             )
             db.session.add(award)
             db.session.commit()
@@ -229,11 +228,12 @@ class BetterAnswersChallengeType(BaseChallenge):
 
             if solved_questions_count == total_questions:
                 # Cleanup awards
-                Awards.query.filter_by(
-                    challenge_id=challenge.id,
-                    user_id=user_id,
-                    team_id=team_id
-                ).delete()
+                # Cleanup partial credit awards for this challenge
+                Awards.query.filter(
+                    Awards.user_id == user_id,
+                    Awards.team_id == team_id,
+                    Awards.name.like(f"Partial Credit: {challenge.name} - %")
+                ).delete(synchronize_session='fetch')
                 
                 # Update challenge value to match total points temporarily for this solve
                 # Note: In static scoring, all solves get challenge.value.

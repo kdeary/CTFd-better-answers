@@ -48,8 +48,8 @@ CTFd._internal.challenge.postRender = function() {
                     const $inputWrapper = $row.find('.ba-input-wrapper');
                     if (q.solved) {
                         $inputWrapper.append(`
-                            <input type="password" value="${q.provided || ''}" data-question-id="${q.id}" readonly disabled class="form-control better-answer-input" style="background: #e9ecef;">
-                            <button class="btn btn-outline-secondary toggle-answer-visibility" type="button">
+                            <input type="text" value="${q.provided || ''}" data-question-id="${q.id}" readonly class="form-control better-answer-input" style="background: #e7f3ef; color: #212529; font-weight: bold; border-color: #badbcc;">
+                            <button class="btn btn-outline-success toggle-answer-visibility" type="button" title="Toggle Visibility">
                                 <i class="fas fa-eye"></i>
                             </button>
                         `);
