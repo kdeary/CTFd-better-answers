@@ -18,22 +18,22 @@
                 
                 <div class="ui error message better-answer-error" style="display: none;"></div>
                 <div class="ui success message better-answer-success" style="display: none;"></div>
+                
+                <template id="ba-question-template">
+                    <tr data-question-id="" class="">
+                        <td class="ten wide">
+                            <div>
+                                <div class="metadata ba-metadata" style="margin-bottom: 0.5rem; font-weight: bold;"></div>
+                            </div>
+                        </td>
+                        <td class="six wide center aligned">
+                            <div class="ui fluid input icon ba-input-wrapper" style="min-width: 200px;">
+                                <!-- Inputs injected dynamically by view.js -->
+                            </div>
+                        </td>
+                    </tr>
+                </template>
             </div>
         </div>
     </div>
 </div>
-
-<template id="ba-question-template">
-    <tr data-question-id="" class="">
-        <td class="ten wide">
-            <div>
-                <div class="metadata ba-metadata" style="margin-bottom: 0.5rem; font-weight: bold;"></div>
-            </div>
-        </td>
-        <td class="six wide center aligned">
-            <div class="ui fluid input icon ba-input-wrapper" style="min-width: 200px;">
-                <!-- Inputs injected dynamically by view.js -->
-            </div>
-        </td>
-    </tr>
-</template>

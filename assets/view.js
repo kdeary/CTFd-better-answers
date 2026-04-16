@@ -1,14 +1,21 @@
-CTFd._internal.challenge.preRender = function() {};
 CTFd._internal.challenge.postRender = function() {
     const $ = window.$ || CTFd.lib.$;
+    
+    // Fallback challenge ID detection
+    const chalId = $('#ba-challenge-id').val() || $('#challenge-id').val() || window.CHALLENGE_ID;
+    
+    // Safely get data
+    let data = CTFd._internal.challenge.data;
 
-    const data = CTFd._internal.challenge.data;
-    const $container = $('#ba-questions-container');
-    const template = $('#ba-question-template').html();
-
-    if (data && data.questions && template && $container.length) {
+    function renderQuestions(questions) {
+        const $modal = $('#challenge-window').length ? $('#challenge-window') : $(document);
+        const $container = $modal.find('#ba-questions-container');
+        const template = $modal.find('#ba-question-template').html();
+        
+        if (!$container.length || !template) return;
+        
         $container.empty();
-        data.questions.forEach(q => {
+        questions.forEach(q => {
             const $row = $(template);
             $row.attr('data-question-id', q.id);
             if (q.category) {
@@ -30,6 +37,18 @@ CTFd._internal.challenge.postRender = function() {
             }
             $container.append($row);
         });
+    }
+
+    if (data && data.questions) {
+        renderQuestions(data.questions);
+    } else if (chalId) {
+        CTFd.fetch(`/api/v1/challenges/${chalId}`)
+            .then(r => r.json())
+            .then(res => {
+                if (res.success && res.data && res.data.questions) {
+                    renderQuestions(res.data.questions);
+                }
+            });
     }
 
     // Toggle visibility for solved questions
