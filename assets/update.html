@@ -1,0 +1,58 @@
+<div class="form-group">
+    <label>Challenge Questions</label>
+    <div id="questions-container">
+        <!-- Dynamic questions list -->
+    </div>
+    <div class="text-right">
+        <button type="button" class="btn btn-outline-success btn-sm mt-2" id="add-question-btn">
+            <i class="fa fa-plus"></i> Add Question
+        </button>
+    </div>
+</div>
+
+<style>
+.question-item {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background: #fdfdfd;
+}
+</style>
+
+<template id="question-template">
+    <div class="question-item p-3 mb-3" data-id="">
+        <input type="hidden" class="question-id">
+        <div class="row mb-2">
+            <div class="col-md-4">
+                <label class="small">Title</label>
+                <input type="text" class="form-control question-title" placeholder="e.g. Q1" required>
+            </div>
+            <div class="col-md-2">
+                <label class="small">Points</label>
+                <input type="number" class="form-control question-points" placeholder="10" required>
+            </div>
+            <div class="col-md-3">
+                <label class="small">Max Attempts</label>
+                <input type="number" class="form-control question-attempts" placeholder="0 (Unlimited)">
+            </div>
+            <div class="col-md-3">
+                <label class="small">Ref Class</label>
+                <input type="text" class="form-control question-category" placeholder="TEXT / IPv4">
+            </div>
+        </div>
+        <div class="form-group mb-2">
+            <label class="small">Description</label>
+            <textarea class="form-control question-description" rows="2" placeholder="What is the answer?" required></textarea>
+        </div>
+        <div class="row">
+            <div class="col-md-10">
+                <label class="small">Answer (Flag)</label>
+                <input type="text" class="form-control question-answer" placeholder="Internal answer (not regex)" required>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="button" class="btn btn-outline-danger btn-block remove-question-btn">
+                    <i class="fa fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</template>

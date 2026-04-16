@@ -1,0 +1,30 @@
+<div class="better-answers-container" style="max-height: 500px; overflow-y: auto; padding: 10px;">
+    <table class="ui table very basic celled">
+        <tbody>
+            {% for q in challenge.questions %}
+            <tr data-question-id="{{ q.id }}" class="{{ q.category }}">
+                <td class="ten wide">
+                    <div>
+                        <div class="metadata" style="margin-bottom: 0.5rem; font-weight: bold;">{{ q.title }} - {{ q.points }} points</div>
+                        <span style="white-space: pre-wrap;">{{ q.description }}</span>
+                    </div>
+                </td>
+                <td class="six wide center aligned">
+                    <div class="ui fluid input icon" style="min-width: 200px;">
+                        {% if q.solved %}
+                        <input type="password" value="{{ q.provided }}" data-question-id="{{ q.id }}" readonly disabled class="better-answer-input" style="background: #f9f9f9;">
+                        <i aria-hidden="true" class="eye icon link toggle-answer-visibility" style="color: #2185d0;"></i>
+                        {% else %}
+                        <input type="text" placeholder="Answer..." data-question-id="{{ q.id }}" class="better-answer-input">
+                        <i aria-hidden="true" class="right arrow circular icon link better-answer-submit" style="color: #21ba45;"></i>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div class="ui error message better-answer-error" style="display: none;"></div>
+    <div class="ui success message better-answer-success" style="display: none;"></div>
+</div>

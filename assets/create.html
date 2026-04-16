@@ -1,0 +1,30 @@
+<div class="form-group">
+    <label>Name<br>
+        <small class="form-text text-muted">The name of your challenge</small>
+    </label>
+    <input type="text" class="form-control" name="name" placeholder="Enter challenge name">
+</div>
+<div class="form-group">
+    <label>Category<br>
+        <small class="form-text text-muted">The category of your challenge</small>
+    </label>
+    <input type="text" class="form-control" name="category" placeholder="Enter challenge category">
+</div>
+
+<ul class="nav nav-tabs" role="tablist">
+    <li class="nav-item">
+        <a class="nav-link active" id="desc-tab" data-toggle="tab" href="#desc" role="tab">Description</a>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <div class="tab-pane fade show active" id="desc" role="tabpanel">
+        <div class="form-group">
+            <textarea id="new-desc-editor" class="form-control" name="description" rows="10"></textarea>
+        </div>
+    </div>
+</div>
+
+<input type="hidden" name="value" value="0">
+<input type="hidden" name="type" value="better_answers">
+<input type="hidden" name="state" value="hidden">
