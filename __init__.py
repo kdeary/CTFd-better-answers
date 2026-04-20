@@ -1,3 +1,5 @@
+import time
+from datetime import datetime
 from flask import Blueprint, request, jsonify
 from CTFd.exceptions.challenges import ChallengeUpdateException
 from CTFd.plugins import register_plugin_assets_directory
@@ -29,6 +31,24 @@ class BetterAnswersChallengeType(BaseChallenge):
         return __name__.split('.')[-1]
 
     @classmethod
+    def _get_correct_provided(cls, challenge_id, user_id, team_id):
+        # Helper to get deduplicated list of provided answers from both Submissions and Partials
+        subs = Submissions.query.filter_by(
+            challenge_id=challenge_id,
+            user_id=user_id,
+            team_id=team_id,
+            type="correct"
+        ).all()
+        parts = Partials.query.filter_by(
+            challenge_id=challenge_id,
+            user_id=user_id,
+            team_id=team_id
+        ).all()
+        
+        provided = [s.provided for s in subs] + [p.provided for p in parts]
+        return list(set(provided))
+
+    @classmethod
     def create(cls, request):
         data = request.form or request.get_json()
         challenge = cls.challenge_model(**data)
@@ -58,20 +78,7 @@ class BetterAnswersChallengeType(BaseChallenge):
         default_pts = challenge.value // len(flags) if len(flags) > 0 else 0
         
         # Check both Submissions and Partials
-        correct_submissions = Submissions.query.filter_by(
-            challenge_id=challenge.id,
-            user_id=user_id,
-            team_id=team_id,
-            type="correct"
-        ).all()
-        correct_partials = Partials.query.filter_by(
-            challenge_id=challenge.id,
-            user_id=user_id,
-            team_id=team_id
-        ).all()
-        
-        correct_provided = [s.provided for s in correct_submissions] + [p.provided for p in correct_partials]
-        correct_provided = list(set(correct_provided)) # deduplicate
+        correct_provided = cls._get_correct_provided(challenge.id, user_id, team_id)
         
         for i, flag in enumerate(flags):
             flag_class = get_flag_class(flag.type)
@@ -150,19 +157,7 @@ class BetterAnswersChallengeType(BaseChallenge):
         team_id = team.id if team else None
 
         # Check both Submissions and Partials to prevent duplicate awards
-        correct_submissions = Submissions.query.filter_by(
-            challenge_id=challenge.id,
-            user_id=user_id,
-            team_id=team_id,
-            type="correct"
-        ).all()
-        correct_partials = Partials.query.filter_by(
-            challenge_id=challenge.id,
-            user_id=user_id,
-            team_id=team_id
-        ).all()
-        
-        correct_provided = [s.provided for s in correct_submissions] + [p.provided for p in correct_partials]
+        correct_provided = cls._get_correct_provided(challenge.id, user_id, team_id)
         
         flag_class = get_flag_class(flag.type)
         for prov in correct_provided:
@@ -248,7 +243,7 @@ class BetterAnswersChallengeType(BaseChallenge):
 
             return True, "Correct!"
         else:
-            return False, "Incorrect"
+            return False, (f"Incorrect (Submission Time: {datetime.fromtimestamp(time.time())})")
 
     @classmethod
     def solve(cls, user, team, challenge, request):
@@ -256,18 +251,13 @@ class BetterAnswersChallengeType(BaseChallenge):
         team_id = team.id if team else None
 
         total_flags = Flags.query.filter_by(challenge_id=challenge.id).count()
-        correct_submissions = Submissions.query.filter_by(
-            challenge_id=challenge.id,
-            user_id=user_id,
-            team_id=team_id,
-            type="correct"
-        ).all()
-        correct_provided = [s.provided for s in correct_submissions]
+        correct_provided = cls._get_correct_provided(challenge.id, user_id, team_id)
         
         data = request.form or request.get_json()
         current_submission = data.get("submission", "").strip()
         if current_submission:
-            correct_provided.append(current_submission)
+            if current_submission not in correct_provided:
+                correct_provided.append(current_submission)
 
         solved_flags_count = 0
         all_flags = Flags.query.filter_by(challenge_id=challenge.id).all()

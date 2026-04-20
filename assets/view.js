@@ -32,12 +32,12 @@ CTFd._internal.challenge.postRender = function() {
                 questions.forEach(q => {
                     const templateStr = `
                         <tr data-question-id="${q.id}" class="${q.category ? q.category : ''}">
-                            <td class="w-50">
-                                <div>
+                            <td class="w-25 align-middle">
+                                <div class="d-flex text-center align-items-center h-100">
                                     <div class="metadata ba-metadata" style="margin-bottom: 0.5rem; font-weight: bold;">${q.title} - ${q.points} points</div>
                                 </div>
                             </td>
-                            <td class="w-50">
+                            <td class="w-75 align-middle">
                                 <div class="input-group ba-input-wrapper">
                                 </div>
                             </td>
@@ -48,7 +48,7 @@ CTFd._internal.challenge.postRender = function() {
                     const $inputWrapper = $row.find('.ba-input-wrapper');
                     if (q.solved) {
                         $inputWrapper.append(`
-                            <input type="text" value="${q.provided || ''}" data-question-id="${q.id}" readonly class="form-control better-answer-input" style="background: #e7f3ef; color: #212529; font-weight: bold; border-color: #badbcc;">
+                            <input type="password" value="${q.provided || ''}" data-question-id="${q.id}" readonly class="form-control better-answer-input" style="background: #e7f3ef; color: #212529; font-weight: bold; border-color: #badbcc;">
                             <button class="btn btn-outline-success toggle-answer-visibility" type="button" title="Toggle Visibility">
                                 <i class="fas fa-eye"></i>
                             </button>
@@ -56,8 +56,8 @@ CTFd._internal.challenge.postRender = function() {
                     } else {
                         $inputWrapper.append(`
                             <input type="text" placeholder="Answer..." data-question-id="${q.id}" class="form-control better-answer-input">
-                            <button class="btn btn-success better-answer-submit" type="button">
-                                Submit
+                            <button class="btn btn-success better-answer-submit" type="button" title="Submit Answer">
+                                <i class="fas fa-paper-plane"></i>
                             </button>
                         `);
                     }
@@ -71,16 +71,24 @@ CTFd._internal.challenge.postRender = function() {
         }, 50); // Check every 50ms
     }
 
+    function loadAndRender() {
+        if (chalId) {
+            CTFd.fetch(`${CTFd.config.urlRoot}/api/v1/challenges/${chalId}`)
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success && res.data && res.data.questions) {
+                        // Update internal data so other CTFd components might see it
+                        CTFd._internal.challenge.data.questions = res.data.questions;
+                        renderQuestions(res.data.questions);
+                    }
+                });
+        }
+    }
+
     if (data && data.questions) {
         renderQuestions(data.questions);
-    } else if (chalId) {
-        CTFd.fetch(`/api/v1/challenges/${chalId}`)
-            .then(r => r.json())
-            .then(res => {
-                if (res.success && res.data && res.data.questions) {
-                    renderQuestions(res.data.questions);
-                }
-            });
+    } else {
+        loadAndRender();
     }
 
     // Toggle visibility for solved questions
@@ -127,12 +135,21 @@ CTFd._internal.challenge.postRender = function() {
             if (response.success) {
                 if (response.data.status === "correct") {
                     $input.parent().addClass('success');
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 500);
+                    
+                    // If it's the final solve, we still want a reload to update scores/navbar
+                    if (response.data.message && response.data.message.indexOf("fully solved") !== -1) {
+                         setTimeout(() => {
+                             window.location.reload();
+                         }, 1000);
+                    } else {
+                        // Dynamic update for partial solves
+                        setTimeout(() => {
+                            loadAndRender();
+                        }, 500);
+                    }
                 } else {
                     const $error = $('.better-answer-error');
-                    $error.text(response.data.message || "Incorrect").show().delay(3000).fadeOut();
+                    $error.text(response.data.message || "Incorrect (Unknown Error)").show().delay(3000).fadeOut();
                 }
             }
         }).catch(err => {
