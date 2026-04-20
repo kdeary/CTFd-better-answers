@@ -4,9 +4,9 @@ from flask import Blueprint, request, jsonify
 from CTFd.exceptions.challenges import ChallengeUpdateException
 from CTFd.plugins import register_plugin_assets_directory
 from CTFd.plugins.challenges import CHALLENGE_CLASSES, BaseChallenge
-from CTFd.models import db, Solves, Awards, Challenges, Flags, Submissions, Partials
+from CTFd.models import db, Solves, Awards, Challenges, Flags, Submissions, Fails
 from CTFd.utils.user import get_current_user, get_current_team
-from CTFd.utils import user as user_utils
+from CTFd.utils import user as user_utils, get_ip
 from CTFd.plugins.flags import get_flag_class
 from .models import BetterAnswersChallenge
 
@@ -104,7 +104,7 @@ class BetterAnswersChallengeType(BaseChallenge):
             except:
                 pass
         
-        default_pts = challenge.value // len(flags) if len(flags) > 0 else 0
+        default_pts = (challenge.value or 0) // len(flags) if len(flags) > 0 else 0
         
         # Check for successes via Awards and fails via Fails table
         user_awards = Awards.query.filter_by(user_id=user_id, team_id=team_id).all()
@@ -245,17 +245,9 @@ class BetterAnswersChallengeType(BaseChallenge):
         
         max_atts = flag_attempts_list[flag_idx] if flag_idx != -1 and flag_idx < len(flag_attempts_list) else 0
         if max_atts > 0:
-            # Count previous failures
-            fail_count = Awards.query.filter_by(
-                user_id=user_id,
-                team_id=team_id,
-                category="BetterAnswersFail"
-            ).all()
-            total_fails = 0
-            for a in fail_count:
-                if a.requirements and isinstance(a.requirements, dict):
-                    if a.requirements.get('challenge_id') == challenge.id and a.requirements.get('flag_id') == flag.id:
-                        total_fails += 1
+            # Count previous failures using the helper
+            fail_counts = cls._get_fail_counts(challenge.id, user_id, team_id)
+            total_fails = fail_counts.get(flag.id, 0)
             
             if total_fails >= max_atts:
                 return False, f"Max attempts reached for this question ({max_atts}/{max_atts})"
@@ -285,7 +277,7 @@ class BetterAnswersChallengeType(BaseChallenge):
                     flag_points_list = [int(p.strip()) for p in challenge.flag_points.split(',')]
                 except:
                     pass
-            default_pts = challenge.value // len(flags) if len(flags) > 0 else 0
+            default_pts = (challenge.value or 0) // len(flags) if len(flags) > 0 else 0
             
             pts = default_pts
             if flag_idx != -1:
