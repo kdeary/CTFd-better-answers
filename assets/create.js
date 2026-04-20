@@ -1,5 +1,15 @@
 CTFd.plugin.challenge.create = function (event, cb) {
-    const data = $('#challenge-create-form').serializeJSON(true);
+    let data = $('#challenge-create-form').serializeJSON(true);
+    
+    // Validate flag_points sums to value
+    if (data.flag_points && data.flag_points.trim() !== '') {
+        const points = data.flag_points.split(',').map(p => parseInt(p.trim()) || 0);
+        const sum = points.reduce((a, b) => a + b, 0);
+        if (sum !== parseInt(data.value)) {
+            alert(`Error: Flag points (${sum}) must add up to the initial value (${data.value}).`);
+            return;
+        }
+    }
     CTFd.fetch('/api/v1/challenges', {
         method: 'POST',
         headers: {

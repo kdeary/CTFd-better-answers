@@ -34,13 +34,21 @@
 		<label>
 			Initial Value:<br>
 			<small class="form-text text-muted">
-				Total points are calculated from sub-questions. This is the starting value.
+				Total points the challenge is worth.
 			</small>
 		</label>
 		<input type="number" class="form-control" name="value" placeholder="Enter value" value="0" required>
 	</div>
 
 	<div class="form-group">
+		<label>
+			Flag Points (Comma separated):<br>
+			<small class="form-text text-muted">
+				Comma delimited string of numbers corresponding to points for each flag. Must add up to Initial Value.
+			</small>
+		</label>
+		<input type="text" class="form-control" name="flag_points" placeholder="e.g. 25, 25, 50" value="">
+	</div>	<div class="form-group">
 		<label>
 			State:<br>
 			<small class="form-text text-muted">

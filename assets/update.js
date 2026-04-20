@@ -1,61 +1,19 @@
 $(document).ready(function () {
-    const $container = $('#questions-container');
-    function addQuestion(data = {}) {
-        const template = $('#question-template').html();
-        if (!template) {
-            console.error("DEBUG PLUGIN BetterAnswers: Could not find #question-template inside the DOM.");
-            return;
-        }
-        const $row = $(template);
-        if (data.id) $row.find('.question-id').val(data.id);
-        $row.find('.question-title').val(data.title || '');
-        $row.find('.question-points').val(data.points || '');
-        $row.find('.question-attempts').val(data.max_attempts || 0);
-        $row.find('.question-category').val(data.category || '');
-        $row.find('.question-answer').val(data.answer || '');
-        $container.append($row);
-    }
-
-    $('#add-question-btn').click(() => addQuestion());
-    
-    $container.on('click', '.remove-question-btn', function () {
-        $(this).closest('.question-item').remove();
-    });
-
-    // Initial load of questions
-    // Since this is the update page, window.CHALLENGE_ID is available
-    CTFd.fetch(`/api/v1/challenges/${window.CHALLENGE_ID}`, {
-        method: 'GET'
-    }).then(response => response.json()).then(response => {
-        if (response.success) {
-            const questions = response.data.questions || [];
-            if (questions.length > 0) {
-                questions.forEach(q => addQuestion(q));
-            } else {
-                addQuestion(); // Add one row by default if empty
-            }
-        }
-    }).catch(err => {
-        console.error("DEBUG: Exception while fetching challenge data:", err);
-    });
     $('#submit-better-answers-update').click(function(e) {
         e.preventDefault();
         
         let data = $(this).closest('form').serializeJSON(true);
         if (!data) data = {};
-        data.questions = [];
 
-        $('#questions-container .question-item').each(function () {
-            const $el = $(this);
-            data.questions.push({
-                id: $el.find('.question-id').val() || null,
-                title: $el.find('.question-title').val(),
-                points: $el.find('.question-points').val(),
-                max_attempts: $el.find('.question-attempts').val() || 0,
-                category: $el.find('.question-category').val(),
-                answer: $el.find('.question-answer').val()
-            });
-        });
+        // Validate flag_points
+        if (data.flag_points && data.flag_points.trim() !== '') {
+            const points = data.flag_points.split(',').map(p => parseInt(p.trim()) || 0);
+            const sum = points.reduce((a, b) => a + b, 0);
+            if (sum !== parseInt(data.value)) {
+                alert(`Error: Flag points (${sum}) must add up to the total value (${data.value}).`);
+                return;
+            }
+        }
 
         console.log("DEBUG: Updating challenge with data:", data);
 
