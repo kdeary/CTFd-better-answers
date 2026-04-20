@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify
+from CTFd.exceptions.challenges import ChallengeUpdateException
 from CTFd.plugins import register_plugin_assets_directory
 from CTFd.plugins.challenges import CHALLENGE_CLASSES, BaseChallenge
-from CTFd.models import db, Solves, Awards, Challenges, Flags, Submissions
+from CTFd.models import db, Solves, Awards, Challenges, Flags, Submissions, Partials
 from CTFd.utils.user import get_current_user, get_current_team
 from CTFd.utils import user as user_utils
 from CTFd.plugins.flags import get_flag_class
@@ -56,13 +57,21 @@ class BetterAnswersChallengeType(BaseChallenge):
         q_list = []
         default_pts = challenge.value // len(flags) if len(flags) > 0 else 0
         
+        # Check both Submissions and Partials
         correct_submissions = Submissions.query.filter_by(
             challenge_id=challenge.id,
             user_id=user_id,
             team_id=team_id,
             type="correct"
         ).all()
-        correct_provided = [s.provided for s in correct_submissions]
+        correct_partials = Partials.query.filter_by(
+            challenge_id=challenge.id,
+            user_id=user_id,
+            team_id=team_id
+        ).all()
+        
+        correct_provided = [s.provided for s in correct_submissions] + [p.provided for p in correct_partials]
+        correct_provided = list(set(correct_provided)) # deduplicate
         
         for i, flag in enumerate(flags):
             flag_class = get_flag_class(flag.type)
@@ -94,10 +103,32 @@ class BetterAnswersChallengeType(BaseChallenge):
 
     @classmethod
     def update(cls, challenge, request):
+        data = request.form or request.get_json()
+        
+        if "flag_points" in data and data["flag_points"].strip() != "":
+            flag_points = data["flag_points"]
+            points_count = len([p for p in flag_points.split(",") if p.strip() != ""])
+            flag_count = Flags.query.filter_by(challenge_id=challenge.id).count()
+            
+            if points_count > flag_count:
+                raise ChallengeUpdateException(
+                    f"You have defined points for {points_count} questions, but this challenge only has {flag_count} flags. Please add more flags first."
+                )
+
         return super().update(challenge, request)
 
     @classmethod
     def delete(cls, challenge):
+        # Clean up partial awards manually since they aren't linked by FK
+        Awards.query.filter(
+            Awards.name.like(f"Partial Credit: % (ID: {challenge.id}) - Q%")
+        ).delete(synchronize_session='fetch')
+        
+        # Also handle old naming convention for safety during transition
+        Awards.query.filter(
+            Awards.name.like(f"Partial Credit: {challenge.name} - Q%")
+        ).delete(synchronize_session='fetch')
+        
         return super().delete(challenge)
 
     @classmethod
@@ -118,14 +149,20 @@ class BetterAnswersChallengeType(BaseChallenge):
         user_id = user.id if user else None
         team_id = team.id if team else None
 
-        # Check for previous solves using core Submissions
+        # Check both Submissions and Partials to prevent duplicate awards
         correct_submissions = Submissions.query.filter_by(
             challenge_id=challenge.id,
             user_id=user_id,
             team_id=team_id,
             type="correct"
         ).all()
-        correct_provided = [s.provided for s in correct_submissions]
+        correct_partials = Partials.query.filter_by(
+            challenge_id=challenge.id,
+            user_id=user_id,
+            team_id=team_id
+        ).all()
+        
+        correct_provided = [s.provided for s in correct_submissions] + [p.provided for p in correct_partials]
         
         flag_class = get_flag_class(flag.type)
         for prov in correct_provided:
@@ -159,15 +196,19 @@ class BetterAnswersChallengeType(BaseChallenge):
                     idx = i + 1
                     break
 
-            # Award partial points
+            # Award partial points with a unique name including challenge ID
             award = Awards(
                 user_id=user_id,
                 team_id=team_id,
-                name=f"Partial Credit: {challenge.name} - Q{idx}",
+                name=f"Partial Credit: {challenge.name} (ID: {challenge.id}) - Q{idx}",
                 value=pts,
                 category="Challenge"
             )
             db.session.add(award)
+            
+            # Record partial solve in native Partials table
+            cls.partial(user, team, challenge, request)
+            
             db.session.commit()
 
             # Check if all flags found (Including this new valid submission, so + 1)
@@ -188,6 +229,14 @@ class BetterAnswersChallengeType(BaseChallenge):
             
             # Add 1 for the currently checked correct submission
             if solved_flags_count + 1 >= total_flags:
+                # Precise cleanup using the unique ID in the name
+                Awards.query.filter(
+                    Awards.user_id == user_id,
+                    Awards.team_id == team_id,
+                    Awards.name.like(f"Partial Credit: % (ID: {challenge.id}) - Q%")
+                ).delete(synchronize_session='fetch')
+                
+                # Cleanup old naming convention just in case
                 Awards.query.filter(
                     Awards.user_id == user_id,
                     Awards.team_id == team_id,

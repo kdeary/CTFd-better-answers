@@ -60,6 +60,7 @@
 		<input type="text" class="form-control chal-flag-points" id="flag_points" name="flag_points" value="{{ challenge.flag_points }}">
 	</div>
 
+	<input type="hidden" id="ba-flag-count" value="{{ challenge.flags | length }}">
 	<input type="hidden" name="type" value="better_answers">
 
 	<hr>
