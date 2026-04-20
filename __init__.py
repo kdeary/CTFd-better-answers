@@ -58,6 +58,27 @@ class BetterAnswersChallengeType(BaseChallenge):
         return list(set(provided))
 
     @classmethod
+    def _get_fail_counts(cls, challenge_id, user_id, team_id):
+        # Helper to count failures per question by parsing [flag_id:X] markers in the Fails table
+        fails = Fails.query.filter_by(
+            challenge_id=challenge_id,
+            user_id=user_id,
+            team_id=team_id
+        ).all()
+        
+        counts = {} # flag_id -> count
+        for f in fails:
+            if f.provided and f.provided.startswith('[flag_id:'):
+                try:
+                    # Extract ID from "[flag_id:123] answer"
+                    fid_str = f.provided.split(']')[0].split(':')[1]
+                    fid = int(fid_str)
+                    counts[fid] = counts.get(fid, 0) + 1
+                except (IndexError, ValueError):
+                    pass
+        return counts
+
+    @classmethod
     def create(cls, request):
         data = request.form or request.get_json()
         challenge = cls.challenge_model(**data)
@@ -83,34 +104,68 @@ class BetterAnswersChallengeType(BaseChallenge):
             except:
                 pass
         
-        q_list = []
         default_pts = challenge.value // len(flags) if len(flags) > 0 else 0
         
-        # Check both Submissions and Partials
-        correct_provided = cls._get_correct_provided(challenge.id, user_id, team_id)
+        # Check for successes via Awards and fails via Fails table
+        user_awards = Awards.query.filter_by(user_id=user_id, team_id=team_id).all()
+        correct_provided = []
         
+        for a in user_awards:
+            if a.requirements and isinstance(a.requirements, dict):
+                if a.requirements.get('challenge_id') == challenge.id:
+                    correct_provided.append(a.requirements.get('provided'))
+
+        # Standard correct submissions (Solves)
+        correct_submissions = Submissions.query.filter_by(
+            challenge_id=challenge.id,
+            user_id=user_id,
+            team_id=team_id,
+            type="correct"
+        ).all()
+        correct_provided += [s.provided for s in correct_submissions]
+        correct_provided = list(set(correct_provided))
+
+        # Get fail counts from the native Fails table
+        fail_counts = cls._get_fail_counts(challenge.id, user_id, team_id)
+
+        # Parse attempts
+        flag_attempts_list = []
+        if challenge.flag_attempts:
+            try:
+                flag_attempts_list = [int(a.strip()) for a in challenge.flag_attempts.split(',')]
+            except:
+                pass
+
+        q_list = []
         for i, flag in enumerate(flags):
             flag_class = get_flag_class(flag.type)
-            solved_provided = ""
+            solved = False
+            provided = None
             for prov in correct_provided:
                 try:
                     if flag_class.compare(flag, prov):
-                        solved_provided = prov
+                        solved = True
+                        provided = prov
                         break
                 except:
                     pass
             
             pts = flag_points_list[i] if i < len(flag_points_list) else default_pts
+            max_att = flag_attempts_list[i] if i < len(flag_attempts_list) else 0
+            curr_att = fail_counts.get(flag.id, 0)
+            if solved:
+                curr_att += 1
 
             q_list.append({
                 "id": flag.id,
-                "title": f"Q{i+1}",
-                "description": "",
+                "title": f"Question {i+1}",
                 "points": pts,
-                "solved": bool(solved_provided),
-                "provided": solved_provided
+                "solved": solved,
+                "provided": provided,
+                "attempts": curr_att,
+                "max_attempts": max_att
             })
-
+        
         data.update({
             "questions": q_list,
             "flag_points": challenge.flag_points
@@ -172,7 +227,40 @@ class BetterAnswersChallengeType(BaseChallenge):
         user_id = user.id if user else None
         team_id = team.id if team else None
 
-        # Check both Submissions and Partials to prevent duplicate awards
+        # Check Attempt Limit for this specific question
+        flag_attempts_list = []
+        if challenge.flag_attempts:
+            try:
+                flag_attempts_list = [int(a.strip()) for a in challenge.flag_attempts.split(',')]
+            except:
+                pass
+        
+        # Find this flag's position to get its specific limit
+        flags = Flags.query.filter_by(challenge_id=challenge.id).order_by(Flags.id).all()
+        flag_idx = -1
+        for i, f in enumerate(flags):
+            if f.id == flag.id:
+                flag_idx = i
+                break
+        
+        max_atts = flag_attempts_list[flag_idx] if flag_idx != -1 and flag_idx < len(flag_attempts_list) else 0
+        if max_atts > 0:
+            # Count previous failures
+            fail_count = Awards.query.filter_by(
+                user_id=user_id,
+                team_id=team_id,
+                category="BetterAnswersFail"
+            ).all()
+            total_fails = 0
+            for a in fail_count:
+                if a.requirements and isinstance(a.requirements, dict):
+                    if a.requirements.get('challenge_id') == challenge.id and a.requirements.get('flag_id') == flag.id:
+                        total_fails += 1
+            
+            if total_fails >= max_atts:
+                return False, f"Max attempts reached for this question ({max_atts}/{max_atts})"
+
+        # Check both Submissions and Awards metadata to prevent duplicate awards
         correct_provided = cls._get_correct_provided(challenge.id, user_id, team_id)
         
         flag_class = get_flag_class(flag.type)
@@ -191,7 +279,6 @@ class BetterAnswersChallengeType(BaseChallenge):
         
         if is_correct:
             # Figure out points for this flag
-            flags = Flags.query.filter_by(challenge_id=challenge.id).order_by(Flags.id).all()
             flag_points_list = []
             if challenge.flag_points:
                 try:
@@ -201,11 +288,9 @@ class BetterAnswersChallengeType(BaseChallenge):
             default_pts = challenge.value // len(flags) if len(flags) > 0 else 0
             
             pts = default_pts
-            for i, f in enumerate(flags):
-                if f.id == flag.id:
-                    pts = flag_points_list[i] if i < len(flag_points_list) else default_pts
-                    idx = i + 1
-                    break
+            if flag_idx != -1:
+                pts = flag_points_list[flag_idx] if flag_idx < len(flag_points_list) else default_pts
+                idx = flag_idx + 1
 
             # Award partial points with unique metadata in requirements
             award = Awards(
@@ -223,8 +308,8 @@ class BetterAnswersChallengeType(BaseChallenge):
             db.session.add(award)
             db.session.commit()
 
-            # Check if all flags found (Including this new valid submission, so + 1)
-            total_flags = Flags.query.filter_by(challenge_id=challenge.id).count()
+            # Check if all flags found
+            total_flags = len(flags)
             
             # Count unique flags solved by checking Awards metadata
             solved_flags_count = 0
@@ -241,19 +326,32 @@ class BetterAnswersChallengeType(BaseChallenge):
                        if a.requirements.get('challenge_id') == challenge.id:
                            db.session.delete(a)
                 
-                # Cleanup old naming convention just in case
-                Awards.query.filter(
-                    Awards.user_id == user_id,
-                    Awards.team_id == team_id,
-                    Awards.name.like(f"Partial Credit: % (ID: {challenge.id}) - Q%")
-                ).delete(synchronize_session='fetch')
-                
                 db.session.commit()
                 return True, "Correct! Challenge fully solved."
 
             return True, "Correct!"
         else:
             return False, (f"Incorrect (Submission Time: {datetime.fromtimestamp(time.time())})")
+
+    @classmethod
+    def fail(cls, user, team, challenge, request):
+        data = request.form or request.get_json()
+        submission = data["submission"].strip()
+        flag_id = data.get("question_id")
+        
+        # Prefix provided answer with metadata for tracking
+        if flag_id:
+            submission = f"[flag_id:{flag_id}] {submission}"
+            
+        wrong = Fails(
+            user_id=user.id,
+            team_id=team.id if team else None,
+            challenge_id=challenge.id,
+            ip=get_ip(request),
+            provided=submission,
+        )
+        db.session.add(wrong)
+        db.session.commit()
 
     @classmethod
     def solve(cls, user, team, challenge, request):

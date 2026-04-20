@@ -9,22 +9,31 @@ $(document).ready(function () {
         const data = $form.serializeJSON(true);
 
         // Validate flag_points
-        if (data.flag_points && data.flag_points.trim() !== '') {
-            const pointsArr = data.flag_points.split(',').filter(p => p.trim() !== '');
-            const pointsCount = pointsArr.length;
-            const pointsSum = pointsArr.map(p => parseInt(p.trim()) || 0).reduce((a, b) => a + b, 0);
-            const flagCount = parseInt($('#ba-flag-count').val());
+        const flagPoints = $('input[name="flag_points"]').val().split(',').map(x => x.trim()).filter(x => x);
+        const flagAttempts = $('input[name="flag_attempts"]').val().split(',').map(x => x.trim()).filter(x => x);
+        const flagCount = parseInt($('#ba-flag-count').val()) || 0;
 
-            if (pointsCount > flagCount) {
-                alert(`Error: You have defined points for ${pointsCount} questions, but this challenge only has ${flagCount} flags. Please add more flags first.`);
-                return;
+        if (flagCount > 0) {
+            if (flagPoints.length > 0 && flagPoints.length !== flagCount) {
+                 alert(`Warning: You have ${flagCount} flags but ${flagPoints.length} point values defined.`);
+                 return;
             }
-
-            if (pointsSum !== parseInt(data.value)) {
-                alert(`Error: Flag points (${pointsSum}) must add up to the total value (${data.value}).`);
-                return;
+            if (flagAttempts.length > 0 && flagAttempts.length !== flagCount) {
+                 alert(`Warning: You have ${flagCount} flags but ${flagAttempts.length} attempt limits defined.`);
+                 return;
             }
         }
+
+        // Prepare data
+        const params = {
+            name: $('input[name="name"]').val(),
+            category: $('input[name="category"]').val(),
+            description: $('textarea[name="description"]').val(),
+            value: $('input[name="value"]').val(),
+            state: $('select[name="state"]').val(),
+            flag_points: $('input[name="flag_points"]').val(),
+            flag_attempts: $('input[name="flag_attempts"]').val()
+        };
 
         console.log("BetterAnswers: Updating challenge with data:", data);
 

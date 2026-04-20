@@ -10,65 +10,70 @@ CTFd._internal.challenge.postRender = function() {
 
     console.log('post render fired',chalId, data)
 
-     function renderQuestions(questions) {
-        // Poll for the container because Alpine.js x-html DOM hydration is asynchronous
-        let pollCount = 0;
-        const checkExist = setInterval(function() {
-            pollCount++;
-            const $modal = $('#challenge-window').length ? $('#challenge-window') : $(document);
-            const $container = $modal.find('#ba-questions-container');
+    function renderQuestions(questions) {
+        const $modal = $('#challenge-window').length ? $('#challenge-window') : $(document);
+        const $container = $modal.find('#ba-questions-container');
+        
+        if (!$container.length) {
+            // Container not ready, try again in a moment
+            setTimeout(() => renderQuestions(questions), 50);
+            return;
+        }
+
+        console.log("BetterAnswers: Rendering questions...", questions);
+        
+        // Fix native grid layout spacing
+        $modal.find('.submit-row > .col-sm-8').removeClass('col-sm-8').addClass('col-sm-12');
+        $modal.find('.submit-row > .col-sm-4').hide();
+        $modal.find('.modal-dialog').removeClass('modal-sm').addClass('modal-lg');
+        
+        $container.empty();
+        questions.forEach(q => {
+            const checkMark = q.solved ? '<i class="fas fa-check-circle text-success mr-2"></i>' : '';
+            const attemptInfo = q.max_attempts > 0 
+                ? ` <small class="text-muted">(${q.attempts}/${q.max_attempts} attempts)</small>`
+                : ` <small class="text-muted">(${q.attempts} attempts)</small>`;
+
+            const templateStr = `
+                <tr data-question-id="${q.id}" class="${q.category ? q.category : ''}">
+                    <td class="w-25 align-middle">
+                        <div class="d-flex align-items-center h-100">
+                            <div class="metadata ba-metadata w-100" style="font-weight: bold;">
+                                ${checkMark} ${q.title} - ${q.points} pts
+                                ${attemptInfo}
+                            </div>
+                        </div>
+                    </td>
+                    <td class="w-75 align-middle">
+                        <div class="input-group ba-input-wrapper">
+                        </div>
+                    </td>
+                </tr>
+            `;
+            const $row = $(templateStr);
             
-            if ($container.length) {
-                clearInterval(checkExist);
-                
-                // Fix native grid layout spacing
-                $modal.find('.submit-row > .col-sm-8').removeClass('col-sm-8').addClass('col-sm-12');
-                $modal.find('.submit-row > .col-sm-4').hide();
-                
-                // Expand the modal width to give the custom multi-question table breathing room
-                $modal.find('.modal-dialog').removeClass('modal-sm').addClass('modal-lg');
-                
-                $container.empty();
-                questions.forEach(q => {
-                    const templateStr = `
-                        <tr data-question-id="${q.id}" class="${q.category ? q.category : ''}">
-                            <td class="w-25 align-middle">
-                                <div class="d-flex text-center align-items-center h-100">
-                                    <div class="metadata ba-metadata" style="margin-bottom: 0.5rem; font-weight: bold;">${q.title} - ${q.points} points</div>
-                                </div>
-                            </td>
-                            <td class="w-75 align-middle">
-                                <div class="input-group ba-input-wrapper">
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                    const $row = $(templateStr);
-                    
-                    const $inputWrapper = $row.find('.ba-input-wrapper');
-                    if (q.solved) {
-                        $inputWrapper.append(`
-                            <input type="password" value="${q.provided || ''}" data-question-id="${q.id}" readonly class="form-control better-answer-input" style="background: #e7f3ef; color: #212529; font-weight: bold; border-color: #badbcc;">
-                            <button class="btn btn-outline-success toggle-answer-visibility" type="button" title="Toggle Visibility">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        `);
-                    } else {
-                        $inputWrapper.append(`
-                            <input type="text" placeholder="Answer..." data-question-id="${q.id}" class="form-control better-answer-input">
-                            <button class="btn btn-success better-answer-submit" type="button" title="Submit Answer">
-                                <i class="fas fa-paper-plane"></i>
-                            </button>
-                        `);
-                    }
-                    $container.append($row);
-                });
-            } else if (pollCount > 40) {
-                // Timeout after ~2 seconds
-                clearInterval(checkExist);
-                console.error("BetterAnswers: Timeout waiting for #ba-questions-container to render.");
+            const $inputWrapper = $row.find('.ba-input-wrapper');
+            if (q.solved) {
+                $inputWrapper.append(`
+                    <input type="password" value="${q.provided || ''}" data-question-id="${q.id}" readonly class="form-control better-answer-input" style="background: #e7f3ef; color: #212529; font-weight: bold; border-color: #badbcc;">
+                    <button class="btn btn-outline-success toggle-answer-visibility" type="button" title="Toggle Visibility">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                `);
+            } else {
+                const isLocked = q.max_attempts > 0 && q.attempts >= q.max_attempts;
+                $inputWrapper.append(`
+                    <input type="text" placeholder="${isLocked ? 'Max attempts reached' : 'Answer...'}" 
+                           data-question-id="${q.id}" class="form-control better-answer-input" 
+                           ${isLocked ? 'disabled' : ''}>
+                    <button class="btn btn-success better-answer-submit ${isLocked ? 'disabled' : ''}" 
+                            type="button" title="Submit Answer" ${isLocked ? 'disabled' : ''}>
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                `);
             }
-        }, 50); // Check every 50ms
+            $container.append($row);
+        });
     }
 
     function loadAndRender() {
@@ -149,7 +154,11 @@ CTFd._internal.challenge.postRender = function() {
                     }
                 } else {
                     const $error = $('.better-answer-error');
-                    $error.text(response.data.message || "Incorrect (Unknown Error)").show().delay(3000).fadeOut();
+                    const msg = response.data.message || "Incorrect (Unknown Error)";
+                    $error.text(msg).show();
+                    setTimeout(() => {
+                        $error.fadeOut(500);
+                    }, 3000);
                 }
             }
         }).catch(err => {
