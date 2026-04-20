@@ -27,16 +27,17 @@ class BetterAnswersChallengeType(BaseChallenge):
     def get_plugin_name(cls):
         return __name__.split('.')[-1]
 
-    @staticmethod
-    def create(request):
+    @classmethod
+    def create(cls, request):
         data = request.form or request.get_json()
-        challenge = BetterAnswersChallenge(**data)
+        challenge = cls.challenge_model(**data)
         db.session.add(challenge)
         db.session.commit()
         return challenge
 
     @classmethod
     def read(cls, challenge):
+        data = super().read(challenge)
         user = get_current_user()
         team = get_current_team()
         user_id = user.id if user else None
@@ -85,42 +86,22 @@ class BetterAnswersChallengeType(BaseChallenge):
                 "provided": solved_provided
             })
 
-        data = {
-            "id": challenge.id,
-            "name": challenge.name,
-            "value": challenge.value,
-            "description": challenge.description,
-            "category": challenge.category,
-            "state": challenge.state,
-            "max_attempts": challenge.max_attempts,
-            "type": challenge.type,
-            "type_data": {
-                "id": cls.id,
-                "name": cls.name,
-                "templates": cls.templates,
-                "scripts": cls.scripts,
-            },
+        data.update({
             "questions": q_list,
             "flag_points": challenge.flag_points
-        }
+        })
         return data
 
-    @staticmethod
-    def update(challenge, request):
-        data = request.form or request.get_json()
-        for key, value in data.items():
-            setattr(challenge, key, value)
-        db.session.commit()
-        return challenge
+    @classmethod
+    def update(cls, challenge, request):
+        return super().update(challenge, request)
 
-    @staticmethod
-    def delete(challenge):
-        BetterAnswersChallenge.query.filter_by(id=challenge.id).delete()
-        Challenges.query.filter_by(id=challenge.id).delete()
-        db.session.commit()
+    @classmethod
+    def delete(cls, challenge):
+        return super().delete(challenge)
 
-    @staticmethod
-    def attempt(challenge, request):
+    @classmethod
+    def attempt(cls, challenge, request):
         data = request.form or request.get_json()
         submission = data.get("submission", "").strip()
         flag_id = data.get("question_id") # frontend sends 'question_id' but it corresponds to flag.id
@@ -220,8 +201,8 @@ class BetterAnswersChallengeType(BaseChallenge):
         else:
             return False, "Incorrect"
 
-    @staticmethod
-    def solve(user, team, challenge, request):
+    @classmethod
+    def solve(cls, user, team, challenge, request):
         user_id = user.id if user else None
         team_id = team.id if team else None
 
@@ -253,14 +234,14 @@ class BetterAnswersChallengeType(BaseChallenge):
         
         if solved_flags_count >= total_flags:
             # Actually solved! Let core handle it.
-            BaseChallenge.solve(user, team, challenge, request)
+            super().solve(user, team, challenge, request)
         else:
             # Partial solve, do not create a generic `Solves` record!
             pass
 
-    @staticmethod
-    def fail(user, team, challenge, request):
-        BaseChallenge.fail(user, team, challenge, request)
+    @classmethod
+    def fail(cls, user, team, challenge, request):
+        return super().fail(user, team, challenge, request)
 
 def load(app):
     app.db.create_all()

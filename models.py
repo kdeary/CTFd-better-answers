@@ -4,6 +4,3 @@ class BetterAnswersChallenge(Challenges):
     __mapper_args__ = {"polymorphic_identity": "better_answers"}
     id = db.Column(db.Integer, db.ForeignKey("challenges.id", ondelete="CASCADE"), primary_key=True)
     flag_points = db.Column(db.Text, default="")
-
-    def __init__(self, *args, **kwargs):
-        super(BetterAnswersChallenge, self).__init__(**kwargs)
