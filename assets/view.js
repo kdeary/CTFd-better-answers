@@ -1,6 +1,6 @@
 (function() {
-    // Better Answers Plugin - Build v14
-    console.log("[BetterAnswers] view.js v14 loaded");
+    // Better Answers Plugin - Build v17
+    console.log("[BetterAnswers] view.js v17 loaded");
 
     const $ = window.$ || CTFd.lib.$;
 
@@ -16,29 +16,33 @@
 
         function renderQuestions(questions) {
             window.ba_renderQuestions = renderQuestions;
-            // Use a more specific selector for the modal to avoid clashes
-            const $modal = $('.modal-content:visible').length ? $('.modal-content:visible') : $('#challenge-window');
-            const $container = $('#ba-questions-container');
+            // Use a more specific selector to ONLY target the active, visible modal
+            const $modal = $('.modal-content:visible');
+            const $container = $modal.find('#ba-questions-container');
             
             if (!$container.length) {
-                // Container not ready, try again in a moment
-                setTimeout(() => renderQuestions(questions), 50);
+                if ($('.modal-content:visible').length) {
+                     console.warn("[BetterAnswers] Modal is visible but #ba-questions-container not found inside it. Retrying...");
+                }
+                setTimeout(() => renderQuestions(questions), 100);
                 return;
             }
 
+            console.log("[BetterAnswers] Targeted visible modal container.");
+
             // Save current input states before emptying
             const savedValues = {};
-            $('.better-answer-input').each(function() {
+            $container.find('.better-answer-input').each(function() {
                 const qid = $(this).data('question-id');
                 const val = $(this).val();
                 if (qid && val) savedValues[qid] = val;
             });
 
-            console.log("[BetterAnswers] Rendering questions...", questions);
+            console.log("[BetterAnswers] Rendering questions into visible modal...", questions);
             
-            // Expand the modal width and fix grid layout
-            $('.modal-dialog').removeClass('modal-md').addClass('modal-lg');
-            $('.submit-row').find('[class*="col-"]').removeClass('col-sm-8 col-sm-4').addClass('col-12');
+            // Expand the modal width and fix grid layout within the visible modal
+            $modal.closest('.modal-dialog').removeClass('modal-md').addClass('modal-lg');
+            $modal.find('.submit-row').find('[class*="col-"]').removeClass('col-sm-8 col-sm-4').addClass('col-12');
             
             $container.empty();
             questions.forEach(q => {
