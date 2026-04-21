@@ -1,7 +1,18 @@
-// Better Answers Plugin - Build v12
-console.log("Better Answers: view.js v12 loaded");
+// Better Answers Plugin - Build v13
+console.log("Better Answers: view.js v13 loaded");
 
 const $ = window.$ || CTFd.lib.$;
+
+// Security helper: escape HTML special characters to prevent XSS
+function escHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;');
+}
 
 window.loadAndRender = function() {
     const id = $('#ba-challenge-id').val() || $('#challenge-id').val() || window.CHALLENGE_ID;
@@ -84,16 +95,22 @@ CTFd._internal.challenge.postRender = function() {
             }
 
             const attemptsLeft = Math.max(0, q.max_attempts - q.attempts);
+            // escHtml() all numeric/string server values before HTML interpolation
             const attemptInfo = (q.max_attempts > 0 && !q.solved)
-                ? ` <small class="text-muted">(${attemptsLeft} attempts left)</small>`
-                : ` <small class="text-muted">(${q.attempts} attempts)</small>`;
+                ? ` <small class="text-muted">(${escHtml(attemptsLeft)} attempts left)</small>`
+                : ` <small class="text-muted">(${escHtml(q.attempts)} attempts)</small>`;
+
+            // Use safe numeric id directly (integers from server are safe)
+            const safeId  = parseInt(q.id, 10);
+            // category is used as a CSS class — strip anything that isn't word chars / hyphens
+            const safeCat = String(q.category || '').replace(/[^\w-]/g, '');
 
             const templateStr = `
-                <tr data-question-id="${q.id}" class="${q.category ? q.category : ''}">
+                <tr data-question-id="${safeId}" class="${safeCat}">
                     <td class="w-25 align-middle">
                         <div class="d-flex align-items-center h-100">
                             <div class="metadata ba-metadata w-100" style="font-weight: bold;">
-                                ${statusMark} ${q.title} - ${q.points} pts
+                                ${statusMark} ${escHtml(q.title)} - ${escHtml(q.points)} pts
                                 ${attemptInfo}
                             </div>
                         </div>
@@ -108,32 +125,26 @@ CTFd._internal.challenge.postRender = function() {
             
             const $inputWrapper = $row.find('.ba-input-wrapper');
             if (q.solved) {
-                $inputWrapper.append(`
-                    <input type="password" value="${q.provided || ''}" data-question-id="${q.id}" readonly class="form-control better-answer-input" style="background: #e7f3ef; color: #212529; font-weight: bold; border-color: #badbcc;">
-                    <button class="btn btn-outline-success toggle-answer-visibility" type="button" title="Toggle Visibility">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                `);
+                // Build the input via DOM to avoid HTML injection from stored answer
+                const $solvedInput = $('<input type="password" readonly class="form-control better-answer-input">')
+                    .attr('data-question-id', safeId)
+                    .val(q.provided || '')
+                    .css({background: '#e7f3ef', color: '#212529', 'font-weight': 'bold', 'border-color': '#badbcc'});
+                const $toggleBtn = $('<button class="btn btn-outline-success toggle-answer-visibility" type="button" title="Toggle Visibility"><i class="fas fa-eye"></i></button>');
+                $inputWrapper.append($solvedInput).append($toggleBtn);
             } else {
                 const isLocked = q.max_attempts > 0 && q.attempts >= q.max_attempts;
                 const savedVal = savedValues[q.id] || '';
                 
                 if (isLocked) {
-                    $inputWrapper.append(`
-                        <div class="form-control text-center text-danger bg-light" style="font-weight: bold; border-style: dashed;">
-                            Max attempts reached
-                        </div>
-                    `);
+                    $inputWrapper.append('<div class="form-control text-center text-danger bg-light" style="font-weight: bold; border-style: dashed;">Max attempts reached</div>');
                 } else {
-                    $inputWrapper.append(`
-                        <input type="text" placeholder="Answer..." 
-                               data-question-id="${q.id}" class="form-control better-answer-input" 
-                               value="${savedVal}">
-                        <button class="btn btn-success better-answer-submit" 
-                                type="button" title="Submit Answer">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
-                    `);
+                    // Build input via DOM so savedVal is set as a value, never parsed as HTML
+                    const $input = $('<input type="text" placeholder="Answer..." class="form-control better-answer-input">')
+                        .attr('data-question-id', safeId)
+                        .val(savedVal);
+                    const $submitBtn = $('<button class="btn btn-success better-answer-submit" type="button" title="Submit Answer"><i class="fas fa-paper-plane"></i></button>');
+                    $inputWrapper.append($input).append($submitBtn);
                 }
             }
             $container.append($row);

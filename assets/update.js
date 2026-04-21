@@ -6,7 +6,6 @@ $(document).ready(function () {
         e.preventDefault();
         
         const $form = $(this).closest('form');
-        const data = $form.serializeJSON(true);
 
         // Validate flag_points
         const flagPoints = $('input[name="flag_points"]').val().split(',').map(x => x.trim()).filter(x => x);
@@ -35,7 +34,7 @@ $(document).ready(function () {
             flag_attempts: $('input[name="flag_attempts"]').val()
         };
 
-        console.log("BetterAnswers: Updating challenge with data:", data);
+        console.log("BetterAnswers: Updating challenge with params:", params);
 
         // Standard CTFd uses window.CHALLENGE_ID or we pull from a hidden input
         const chalId = $('#ba-challenge-id').val() || window.CHALLENGE_ID;

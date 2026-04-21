@@ -24,7 +24,7 @@ class BetterAnswersChallengeType(BaseChallenge):
     scripts = {
         "create": f"/plugins/better-answers/assets/create.js?v=5",
         "update": f"/plugins/better-answers/assets/update.js?v=5",
-        "view": f"/plugins/better-answers/assets/view.js?v=12",
+        "view": f"/plugins/better-answers/assets/view.js?v=13",
     }
 
     @classmethod
@@ -82,7 +82,21 @@ class BetterAnswersChallengeType(BaseChallenge):
     @classmethod
     def create(cls, request):
         data = request.form or request.get_json()
-        challenge = cls.challenge_model(**data)
+
+        # Allowlist keys to prevent mass-assignment of unintended model fields
+        allowed_keys = {"name", "description", "value", "category", "type",
+                        "state", "max_attempts", "flag_points", "flag_attempts"}
+        filtered = {k: v for k, v in data.items() if k in allowed_keys}
+
+        # Validate flag_points / flag_attempts are purely numeric CSV strings
+        for field in ("flag_points", "flag_attempts"):
+            raw = filtered.get(field, "") or ""
+            for part in raw.split(","):
+                part = part.strip()
+                if part and not part.lstrip("-").isdigit():
+                    raise ValueError(f"Invalid {field} value: {part!r}. Must be comma-separated integers.")
+
+        challenge = cls.challenge_model(**filtered)
         db.session.add(challenge)
         db.session.commit()
         return challenge
@@ -104,8 +118,8 @@ class BetterAnswersChallengeType(BaseChallenge):
             if challenge.flag_points:
                 try:
                     flag_points_list = [int(p.strip()) for p in challenge.flag_points.split(',')]
-                except:
-                    pass
+                except Exception as e:
+                    print(f"[BetterAnswers] Warning: could not parse flag_points: {e}")
             
             default_pts = (challenge.value or 0) // len(flags) if len(flags) > 0 else 0
             
@@ -136,8 +150,8 @@ class BetterAnswersChallengeType(BaseChallenge):
             if challenge.flag_attempts:
                 try:
                     flag_attempts_list = [int(a.strip()) for a in challenge.flag_attempts.split(',')]
-                except:
-                    pass
+                except Exception as e:
+                    print(f"[BetterAnswers] Warning: could not parse flag_attempts: {e}")
 
             q_list = []
             for i, flag in enumerate(flags):
@@ -150,8 +164,8 @@ class BetterAnswersChallengeType(BaseChallenge):
                             solved = True
                             provided = prov
                             break
-                    except:
-                        pass
+                    except Exception as e:
+                        print(f"[BetterAnswers] Flag compare error (flag {flag.id}): {e}")
                 
                 pts = flag_points_list[i] if i < len(flag_points_list) else default_pts
                 max_att = flag_attempts_list[i] if i < len(flag_attempts_list) else 0
@@ -220,10 +234,11 @@ class BetterAnswersChallengeType(BaseChallenge):
     def attempt(cls, challenge, request):
         data = request.form or request.get_json()
         submission = data.get("submission", "").strip()
-        flag_id = data.get("question_id") # frontend sends 'question_id' but it corresponds to flag.id
-        
-        if not flag_id:
-            return False, "Missing flag ID"
+        raw_flag_id = data.get("question_id")
+        try:
+            flag_id = int(raw_flag_id)
+        except (TypeError, ValueError):
+            return False, "Invalid flag ID format"
 
         flag = Flags.query.filter_by(id=flag_id, challenge_id=challenge.id).first()
         if not flag:
@@ -243,8 +258,8 @@ class BetterAnswersChallengeType(BaseChallenge):
         if challenge.flag_attempts:
             try:
                 flag_attempts_list = [int(a.strip()) for a in challenge.flag_attempts.split(',')]
-            except:
-                pass
+            except Exception as e:
+                print(f"[BetterAnswers] Warning: could not parse flag_attempts in attempt(): {e}")
         
         # Find this flag's position to get its specific limit
         flags = Flags.query.filter_by(challenge_id=challenge.id).order_by(Flags.id).all()
@@ -271,8 +286,18 @@ class BetterAnswersChallengeType(BaseChallenge):
             try:
                 if flag_class.compare(flag, prov):
                     return False, "Already solved"
-            except:
-                pass
+            except Exception as e:
+                print(f"[BetterAnswers] Flag compare error during duplicate check (flag {flag.id}): {e}")
+
+        # Atomic duplicate-award guard: check again inside the same DB session
+        # to mitigate race conditions between concurrent correct submissions.
+        existing_award = Awards.query.filter(
+            Awards.user_id == user_id,
+            Awards.team_id == team_id,
+            Awards.requirements.contains({'challenge_id': challenge.id, 'flag_id': flag.id})
+        ).first()
+        if existing_award:
+            return False, "Already solved"
 
         # Check answer
         try:
@@ -286,8 +311,8 @@ class BetterAnswersChallengeType(BaseChallenge):
             if challenge.flag_points:
                 try:
                     flag_points_list = [int(p.strip()) for p in challenge.flag_points.split(',')]
-                except:
-                    pass
+                except Exception as e:
+                    print(f"[BetterAnswers] Warning: could not parse flag_points in attempt(): {e}")
             default_pts = (challenge.value or 0) // len(flags) if len(flags) > 0 else 0
             
             pts = default_pts
@@ -327,33 +352,33 @@ class BetterAnswersChallengeType(BaseChallenge):
 
             return True, "Correct!"
         else:
-            return False, (f"Incorrect (Submission Time: {datetime.fromtimestamp(time.time())})")
+            # Log the server-side timestamp privately; do not expose it to the user.
+            print(f"[BetterAnswers] Incorrect submission for challenge {challenge.id} flag {flag_id} at {datetime.fromtimestamp(time.time())}")
+            return False, "Incorrect"
 
     @classmethod
     def fail(cls, user, team, challenge, request):
         data = request.form or request.get_json()
-        submission = data["submission"].strip()
-        flag_id = data.get("question_id")
-        # Check if limit is already reached
-        user_id = user.id
-        team_id = team.id if team else None
-        current_fails = cls._get_fail_counts(challenge.id, user_id, team_id)
-        max_attempts_dict = {}
-        if challenge.flag_attempts:
-            try:
-                for i, att in enumerate(challenge.flag_attempts.split(',')):
-                    max_attempts_dict[i + 1] = int(att.strip())
-            except:
-                pass
-        
-        limit = max_attempts_dict.get(flag_id, 0)
-        if limit > 0 and current_fails.get(flag_id, 0) >= limit:
-            print(f"[BetterAnswers] Limit reached for flag {flag_id}, ignoring attempt.")
-            return
+        raw_submission = data.get("submission", "")
+        if not isinstance(raw_submission, str):
+            raw_submission = ""
+        submission = raw_submission.strip()
 
-        if flag_id:
+        # flag_id must be a valid integer referencing a flag in this challenge
+        raw_flag_id = data.get("question_id")
+        flag_id = None
+        if raw_flag_id is not None:
+            try:
+                flag_id = int(raw_flag_id)
+            except (TypeError, ValueError):
+                print(f"[BetterAnswers] fail(): invalid question_id {raw_flag_id!r}, ignoring tag.")
+
+        # Attempt-limit enforcement is already handled by attempt(); fail() only
+        # persists the failure record. Duplicate guard is not needed here because
+        # attempt() returns False before fail() is reached if the limit is hit.
+        if flag_id is not None:
             submission = f"[flag_id:{flag_id}] {submission}"
-            
+
         wrong = Fails(
             user_id=user.id,
             team_id=team.id if team else None,
