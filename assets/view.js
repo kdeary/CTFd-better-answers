@@ -9,23 +9,16 @@
     CTFd._internal.challenge.postRender = function() {
         const $ = window.$ || CTFd.lib.$;
         
-        // Fallback challenge ID detection
-        const chalId = $('#ba-challenge-id').val() || $('#challenge-id').val() || window.CHALLENGE_ID;
-        
-        // Safely get data
         let data = CTFd._internal.challenge.data;
+        // Fallback challenge ID detection
+        const chalId = $('#ba-challenge-id').val() || $('#challenge-id').val() || window.CHALLENGE_ID || data.id;
         console.log('[BetterAnswers] postRender fired', chalId, data);
-
-        if (data.solved) {
-            console.log('[BetterAnswers] Challenge is solved, hiding question table.');
-            $('#ba-questions-container').hide();
-            return;
-        }
 
         function renderQuestions(questions) {
             window.ba_renderQuestions = renderQuestions;
-            const $modal = $('#challenge-window').length ? $('#challenge-window') : $(document);
-            const $container = $modal.find('#ba-questions-container');
+            // Use a more specific selector for the modal to avoid clashes
+            const $modal = $('.modal-content:visible').length ? $('.modal-content:visible') : $('#challenge-window');
+            const $container = $('#ba-questions-container');
             
             if (!$container.length) {
                 // Container not ready, try again in a moment
@@ -35,7 +28,7 @@
 
             // Save current input states before emptying
             const savedValues = {};
-            $container.find('.better-answer-input').each(function() {
+            $('.better-answer-input').each(function() {
                 const qid = $(this).data('question-id');
                 const val = $(this).val();
                 if (qid && val) savedValues[qid] = val;
@@ -43,10 +36,9 @@
 
             console.log("[BetterAnswers] Rendering questions...", questions);
             
-            // Fix native grid layout spacing
-            $modal.find('.submit-row > .col-sm-8').removeClass('col-sm-8').addClass('col-sm-12');
-            $modal.find('.submit-row > .col-sm-4').hide();
-            $modal.find('.modal-dialog').removeClass('modal-sm').addClass('modal-lg');
+            // Expand the modal width and fix grid layout
+            $('.modal-dialog').removeClass('modal-md').addClass('modal-lg');
+            $('.submit-row').find('[class*="col-"]').removeClass('col-sm-8 col-sm-4').addClass('col-12');
             
             $container.empty();
             questions.forEach(q => {
