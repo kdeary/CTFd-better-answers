@@ -30,8 +30,8 @@ CTFd._internal.challenge.postRender = function() {
         $container.empty();
         questions.forEach(q => {
             const checkMark = q.solved ? '<i class="fas fa-check-circle text-success mr-2"></i>' : '';
-            const attemptInfo = q.max_attempts > 0 
-                ? ` <small class="text-muted">(${q.attempts}/${q.max_attempts} attempts)</small>`
+            const attemptInfo = (q.max_attempts > 0 && !q.solved)
+                ? ` <small class="text-muted">(${q.max_attempts - q.attempts} attempts left)</small>`
                 : ` <small class="text-muted">(${q.attempts} attempts)</small>`;
 
             const templateStr = `
@@ -159,6 +159,11 @@ CTFd._internal.challenge.postRender = function() {
                     setTimeout(() => {
                         $error.fadeOut(500);
                     }, 3000);
+                    
+                    // Refresh count on incorrect attempts too
+                    setTimeout(() => {
+                        loadAndRender();
+                    }, 500);
                 }
             }
         }).catch(err => {

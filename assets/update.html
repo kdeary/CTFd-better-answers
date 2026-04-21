@@ -59,6 +59,13 @@
 		</label>
 		<input type="text" class="form-control chal-flag-points" id="flag_points" name="flag_points" value="{{ challenge.flag_points }}">
 	</div>
+	<div class="form-group">
+		<label>
+			Flag Attempts (Comma separated)<br>
+			<small class="form-text text-muted">Comma delimited string of numbers corresponding to max attempts for each flag (e.g. 5, 0, 10). 0 or empty for unlimited.</small>
+		</label>
+		<input type="text" class="form-control chal-flag-attempts" id="flag_attempts" name="flag_attempts" value="{{ challenge.flag_attempts or '' }}">
+	</div>
 
 	<input type="hidden" id="ba-flag-count" value="{{ challenge.flags | length }}">
 	<input type="hidden" name="type" value="better_answers">

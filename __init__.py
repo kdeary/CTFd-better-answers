@@ -380,9 +380,6 @@ class BetterAnswersChallengeType(BaseChallenge):
             # Partial solve, do not create a generic `Solves` record!
             pass
 
-    @classmethod
-    def fail(cls, user, team, challenge, request):
-        return super().fail(user, team, challenge, request)
 
 def load(app):
     app.db.create_all()
