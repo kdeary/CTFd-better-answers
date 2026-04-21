@@ -174,6 +174,7 @@ class BetterAnswersChallengeType(BaseChallenge):
             })
         except Exception as e:
             # Prevent 500 error on challenge load if extra logic fails
+            db.session.rollback()
             print(f"Error in BetterAnswers.read(): {e}")
         return data
 
@@ -388,22 +389,23 @@ def load(app):
     
     # Manual Migration for SQLite to ensure required columns exist
     try:
-        inspector = inspect(app.db.engine)
-        columns = [c['name'] for c in inspector.get_columns('better_answers_challenge')]
-        
-        if 'flag_points' not in columns:
-            with app.db.engine.connect() as conn:
-                conn.execute(text('ALTER TABLE better_answers_challenge ADD COLUMN flag_points TEXT DEFAULT ""'))
-                conn.commit()
-                print("Added column flag_points to better_answers_challenge")
+        from sqlalchemy import inspect as sqla_inspect
+        inspector = sqla_inspect(db.engine)
+        if 'better_answers_challenge' in inspector.get_table_names():
+            columns = [c['name'] for c in inspector.get_columns('better_answers_challenge')]
+            
+            if 'flag_points' not in columns:
+                db.session.execute(text('ALTER TABLE better_answers_challenge ADD COLUMN flag_points TEXT DEFAULT ""'))
+                db.session.commit()
+                print("SUCCESS: Added column flag_points to better_answers_challenge")
                 
-        if 'flag_attempts' not in columns:
-            with app.db.engine.connect() as conn:
-                conn.execute(text('ALTER TABLE better_answers_challenge ADD COLUMN flag_attempts TEXT'))
-                conn.commit()
-                print("Added column flag_attempts to better_answers_challenge")
+            if 'flag_attempts' not in columns:
+                db.session.execute(text('ALTER TABLE better_answers_challenge ADD COLUMN flag_attempts TEXT'))
+                db.session.commit()
+                print("SUCCESS: Added column flag_attempts to better_answers_challenge")
     except Exception as e:
         print(f"Migration error: {e}")
+        db.session.rollback()
 
     plugin_name = __name__.split('.')[-1]
     CHALLENGE_CLASSES["better_answers"] = BetterAnswersChallengeType
