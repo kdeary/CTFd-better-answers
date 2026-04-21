@@ -24,7 +24,7 @@ class BetterAnswersChallengeType(BaseChallenge):
     scripts = {
         "create": f"/plugins/better-answers/assets/create.js?v=5",
         "update": f"/plugins/better-answers/assets/update.js?v=5",
-        "view": f"/plugins/better-answers/assets/view.js?v=8",
+        "view": f"/plugins/better-answers/assets/view.js?v=9",
     }
 
     @classmethod
@@ -233,6 +233,10 @@ class BetterAnswersChallengeType(BaseChallenge):
         team = get_current_team()
         user_id = user.id if user else None
         team_id = team.id if team else None
+
+        # PRE-SOLVE CHECK: Do not allow any submissions if already solved
+        if Solves.query.filter_by(challenge_id=challenge.id, user_id=user_id, team_id=team_id).first():
+            return False, "This challenge is already solved!"
 
         # Check Attempt Limit for this specific question
         flag_attempts_list = []

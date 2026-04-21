@@ -40,8 +40,13 @@ CTFd._internal.challenge.postRender = function() {
     
     // Safely get data
     let data = CTFd._internal.challenge.data;
+    console.log('post render fired', chalId, data);
 
-    console.log('post render fired',chalId, data)
+    if (data.solved) {
+        console.log('[BetterAnswers] Challenge is solved, hiding question table.');
+        $('#ba-questions-container').hide();
+        return;
+    }
 
     function renderQuestions(questions) {
         window.ba_renderQuestions = renderQuestions;
