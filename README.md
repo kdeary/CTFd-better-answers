@@ -1,5 +1,7 @@
 # CTFd Better Answers Plugin
 
+![Better Answers Challenge Preview](gh_assets/ba_challenge.png)
+
 A CTFd plugin that introduces a new challenge type: **Better Answers**. This challenge type allows for multiple questions within a single challenge, each with its own point value and attempt limit.
 
 ## Features
