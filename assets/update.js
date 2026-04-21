@@ -33,15 +33,10 @@ $(document).ready(function () {
             return;
         }
 
-        const params = {
-            name: $('input[name="name"]').val(),
-            category: $('input[name="category"]').val(),
-            description: $('textarea[name="description"]').val(),
-            value: totalValue,
-            state: $('select[name="state"]').val(),
-            flag_points: $('input[name="flag_points"]').val(),
-            flag_attempts: $('input[name="flag_attempts"]').val()
-        };
+        const params = $form.serializeJSON(true);
+        // Ensure numeric fields are correctly typed
+        params.value = totalValue;
+        params.max_attempts = parseInt(params.max_attempts) || 0;
 
         console.log("[BetterAnswers] Updating challenge with params:", params);
 
@@ -61,8 +56,11 @@ $(document).ready(function () {
         }).then(response => response.json()).then(response => {
             $btn.removeClass('disabled loading');
             if (response.success) {
-                alert("Challenge updated successfully.");
-                window.location.reload();
+                const oldText = $btn.html();
+                $btn.removeClass('btn-success').addClass('btn-outline-success').html('<i class="fas fa-check"></i> Saved!');
+                setTimeout(() => {
+                    $btn.removeClass('btn-outline-success').addClass('btn-success').html(oldText);
+                }, 2000);
             } else {
                 console.error("[BetterAnswers] Update Error:", response);
                 alert("Error Updating Challenge: " + (response.message || "Check the console for more details."));
