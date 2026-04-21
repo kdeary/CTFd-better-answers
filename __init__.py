@@ -6,7 +6,8 @@ from CTFd.plugins import register_plugin_assets_directory
 from CTFd.plugins.challenges import CHALLENGE_CLASSES, BaseChallenge
 from CTFd.models import db, Solves, Awards, Challenges, Flags, Submissions, Fails
 from CTFd.utils.user import get_current_user, get_current_team
-from CTFd.utils import user as user_utils, get_ip
+from CTFd.utils import user as user_utils
+from CTFd.utils.helpers import get_ip
 from CTFd.plugins.flags import get_flag_class
 from .models import BetterAnswersChallenge
 
