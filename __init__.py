@@ -160,7 +160,7 @@ class BetterAnswersChallengeType(BaseChallenge):
 
                 q_list.append({
                     "id": flag.id,
-                    "title": f"Question {i+1}",
+                    "title": f"Q{i+1}",
                     "points": pts,
                     "solved": solved,
                     "provided": provided,
