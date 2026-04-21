@@ -24,7 +24,7 @@ class BetterAnswersChallengeType(BaseChallenge):
     scripts = {
         "create": f"/plugins/better-answers/assets/create.js?v=5",
         "update": f"/plugins/better-answers/assets/update.js?v=5",
-        "view": f"/plugins/better-answers/assets/view.js?v=9",
+        "view": f"/plugins/better-answers/assets/view.js?v=10",
     }
 
     @classmethod

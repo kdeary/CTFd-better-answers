@@ -1,5 +1,5 @@
-// Better Answers Plugin - Build v8
-console.log("Better Answers: view.js v8 loaded");
+// Better Answers Plugin - Build v10
+console.log("Better Answers: view.js v10 loaded");
 
 const $ = window.$ || CTFd.lib.$;
 
@@ -59,6 +59,14 @@ CTFd._internal.challenge.postRender = function() {
             return;
         }
 
+        // Save current input states before emptying
+        const savedValues = {};
+        $container.find('.better-answer-input').each(function() {
+            const qid = $(this).data('question-id');
+            const val = $(this).val();
+            if (qid && val) savedValues[qid] = val;
+        });
+
         console.log("BetterAnswers: Rendering questions...", questions);
         
         // Fix native grid layout spacing
@@ -102,9 +110,11 @@ CTFd._internal.challenge.postRender = function() {
                 `);
             } else {
                 const isLocked = q.max_attempts > 0 && q.attempts >= q.max_attempts;
+                const savedVal = savedValues[q.id] || '';
                 $inputWrapper.append(`
                     <input type="text" placeholder="${isLocked ? 'Max attempts reached' : 'Answer...'}" 
                            data-question-id="${q.id}" class="form-control better-answer-input" 
+                           value="${savedVal}"
                            ${isLocked ? 'disabled' : ''}>
                     <button class="btn btn-success better-answer-submit ${isLocked ? 'disabled' : ''}" 
                             type="button" title="Submit Answer" ${isLocked ? 'disabled' : ''}>
