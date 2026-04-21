@@ -22,9 +22,9 @@ class BetterAnswersChallengeType(BaseChallenge):
         "view": f"/plugins/better-answers/assets/view.html",
     }
     scripts = {
-        "create": f"/plugins/better-answers/assets/create.js?v=5",
-        "update": f"/plugins/better-answers/assets/update.js?v=5",
-        "view": f"/plugins/better-answers/assets/view.js?v=13",
+        "create": f"/plugins/better-answers/assets/create.js",
+        "update": f"/plugins/better-answers/assets/update.js",
+        "view": f"/plugins/better-answers/assets/view.js",
     }
 
     @classmethod
@@ -47,7 +47,7 @@ class BetterAnswersChallengeType(BaseChallenge):
             team_id=team_id
         ).all()
         
-        provided = [s.provided for s in subs]
+        provided = [s.provided for s in subs]f
         
         for a in awards:
             if a.requirements and isinstance(a.requirements, dict):
