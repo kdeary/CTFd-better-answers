@@ -1,5 +1,7 @@
-// Better Answers Plugin - Build v6
-console.log("Better Answers: view.js v6 loaded");
+// Better Answers Plugin - Build v7
+console.log("Better Answers: view.js v7 loaded");
+
+const $ = window.$ || CTFd.lib.$;
 
 window.loadAndRender = function() {
     const id = $('#ba-challenge-id').val() || $('#challenge-id').val() || window.CHALLENGE_ID;
