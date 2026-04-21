@@ -1,6 +1,7 @@
 import time
 from datetime import datetime
 from flask import Blueprint, request, jsonify
+from sqlalchemy import inspect, text
 from CTFd.exceptions.challenges import ChallengeUpdateException
 from CTFd.plugins import register_plugin_assets_directory
 from CTFd.plugins.challenges import CHALLENGE_CLASSES, BaseChallenge
@@ -89,87 +90,91 @@ class BetterAnswersChallengeType(BaseChallenge):
     @classmethod
     def read(cls, challenge):
         data = super().read(challenge)
-        user = get_current_user()
-        team = get_current_team()
-        user_id = user.id if user else None
-        team_id = team.id if team else None
+        try:
+            user = get_current_user()
+            team = get_current_team()
+            user_id = user.id if user else None
+            team_id = team.id if team else None
 
-        flags = Flags.query.filter_by(challenge_id=challenge.id).order_by(Flags.id).all()
-        
-        # parse custom points
-        flag_points_list = []
-        if challenge.flag_points:
-            try:
-                flag_points_list = [int(p.strip()) for p in challenge.flag_points.split(',')]
-            except:
-                pass
-        
-        default_pts = (challenge.value or 0) // len(flags) if len(flags) > 0 else 0
-        
-        # Check for successes via Awards and fails via Fails table
-        user_awards = Awards.query.filter_by(user_id=user_id, team_id=team_id).all()
-        correct_provided = []
-        
-        for a in user_awards:
-            if a.requirements and isinstance(a.requirements, dict):
-                if a.requirements.get('challenge_id') == challenge.id:
-                    correct_provided.append(a.requirements.get('provided'))
-
-        # Standard correct submissions (Solves)
-        correct_submissions = Submissions.query.filter_by(
-            challenge_id=challenge.id,
-            user_id=user_id,
-            team_id=team_id,
-            type="correct"
-        ).all()
-        correct_provided += [s.provided for s in correct_submissions]
-        correct_provided = list(set(correct_provided))
-
-        # Get fail counts from the native Fails table
-        fail_counts = cls._get_fail_counts(challenge.id, user_id, team_id)
-
-        # Parse attempts
-        flag_attempts_list = []
-        if challenge.flag_attempts:
-            try:
-                flag_attempts_list = [int(a.strip()) for a in challenge.flag_attempts.split(',')]
-            except:
-                pass
-
-        q_list = []
-        for i, flag in enumerate(flags):
-            flag_class = get_flag_class(flag.type)
-            solved = False
-            provided = None
-            for prov in correct_provided:
+            flags = Flags.query.filter_by(challenge_id=challenge.id).order_by(Flags.id).all()
+            
+            # parse custom points
+            flag_points_list = []
+            if challenge.flag_points:
                 try:
-                    if flag_class.compare(flag, prov):
-                        solved = True
-                        provided = prov
-                        break
+                    flag_points_list = [int(p.strip()) for p in challenge.flag_points.split(',')]
                 except:
                     pass
             
-            pts = flag_points_list[i] if i < len(flag_points_list) else default_pts
-            max_att = flag_attempts_list[i] if i < len(flag_attempts_list) else 0
-            curr_att = fail_counts.get(flag.id, 0)
-            if solved:
-                curr_att += 1
+            default_pts = (challenge.value or 0) // len(flags) if len(flags) > 0 else 0
+            
+            # Check for successes via Awards and fails via Fails table
+            user_awards = Awards.query.filter_by(user_id=user_id, team_id=team_id).all()
+            correct_provided = []
+            
+            for a in user_awards:
+                if a.requirements and isinstance(a.requirements, dict):
+                    if a.requirements.get('challenge_id') == challenge.id:
+                        correct_provided.append(a.requirements.get('provided'))
 
-            q_list.append({
-                "id": flag.id,
-                "title": f"Question {i+1}",
-                "points": pts,
-                "solved": solved,
-                "provided": provided,
-                "attempts": curr_att,
-                "max_attempts": max_att
+            # Standard correct submissions (Solves)
+            correct_submissions = Submissions.query.filter_by(
+                challenge_id=challenge.id,
+                user_id=user_id,
+                team_id=team_id,
+                type="correct"
+            ).all()
+            correct_provided += [s.provided for s in correct_submissions]
+            correct_provided = list(set(correct_provided))
+
+            # Get fail counts from the native Fails table
+            fail_counts = cls._get_fail_counts(challenge.id, user_id, team_id)
+
+            # Parse attempts
+            flag_attempts_list = []
+            if challenge.flag_attempts:
+                try:
+                    flag_attempts_list = [int(a.strip()) for a in challenge.flag_attempts.split(',')]
+                except:
+                    pass
+
+            q_list = []
+            for i, flag in enumerate(flags):
+                flag_class = get_flag_class(flag.type)
+                solved = False
+                provided = None
+                for prov in correct_provided:
+                    try:
+                        if flag_class.compare(flag, prov):
+                            solved = True
+                            provided = prov
+                            break
+                    except:
+                        pass
+                
+                pts = flag_points_list[i] if i < len(flag_points_list) else default_pts
+                max_att = flag_attempts_list[i] if i < len(flag_attempts_list) else 0
+                curr_att = fail_counts.get(flag.id, 0)
+                if solved:
+                    curr_att += 1
+
+                q_list.append({
+                    "id": flag.id,
+                    "title": f"Question {i+1}",
+                    "points": pts,
+                    "solved": solved,
+                    "provided": provided,
+                    "attempts": curr_att,
+                    "max_attempts": max_att
+                })
+            
+            data.update({
+                "questions": q_list,
+                "flag_points": challenge.flag_points
             })
-        
-        data.update({
-            "questions": q_list,
-            "flag_points": challenge.flag_points
-        })
+        except Exception as e:
+            # Prevent 500 error on challenge load if extra logic fails
+            print(f"Error in BetterAnswers.read(): {e}")
         return data
 
     @classmethod
@@ -380,6 +385,26 @@ class BetterAnswersChallengeType(BaseChallenge):
 
 def load(app):
     app.db.create_all()
+    
+    # Manual Migration for SQLite to ensure required columns exist
+    try:
+        inspector = inspect(app.db.engine)
+        columns = [c['name'] for c in inspector.get_columns('better_answers_challenge')]
+        
+        if 'flag_points' not in columns:
+            with app.db.engine.connect() as conn:
+                conn.execute(text('ALTER TABLE better_answers_challenge ADD COLUMN flag_points TEXT DEFAULT ""'))
+                conn.commit()
+                print("Added column flag_points to better_answers_challenge")
+                
+        if 'flag_attempts' not in columns:
+            with app.db.engine.connect() as conn:
+                conn.execute(text('ALTER TABLE better_answers_challenge ADD COLUMN flag_attempts TEXT'))
+                conn.commit()
+                print("Added column flag_attempts to better_answers_challenge")
+    except Exception as e:
+        print(f"Migration error: {e}")
+
     plugin_name = __name__.split('.')[-1]
     CHALLENGE_CLASSES["better_answers"] = BetterAnswersChallengeType
     register_plugin_assets_directory(app, base_path=f"/plugins/{plugin_name}/assets/")
