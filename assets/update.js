@@ -9,19 +9,7 @@ $(document).ready(function () {
 
         // Validate flag_points
         const flagPoints = $('input[name="flag_points"]').val().split(',').map(x => x.trim()).filter(x => x);
-        const flagAttempts = $('input[name="flag_attempts"]').val().split(',').map(x => x.trim()).filter(x => x);
-        const flagCount = parseInt($('#ba-flag-count').val()) || 0;
 
-        if (flagCount > 0) {
-            if (flagPoints.length > 0 && flagPoints.length !== flagCount) {
-                 alert(`Warning: You have ${flagCount} flags but ${flagPoints.length} point values defined.`);
-                 return;
-            }
-            if (flagAttempts.length > 0 && flagAttempts.length !== flagCount) {
-                 alert(`Warning: You have ${flagCount} flags but ${flagAttempts.length} attempt limits defined.`);
-                 return;
-            }
-        }
 
         // Validation: Ensure flag_points sums to total value
         const totalValue = parseInt($('input[name="value"]').val()) || 0;
