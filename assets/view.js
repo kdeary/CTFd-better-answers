@@ -1,5 +1,5 @@
-// Better Answers Plugin - Build v10
-console.log("Better Answers: view.js v10 loaded");
+// Better Answers Plugin - Build v12
+console.log("Better Answers: view.js v12 loaded");
 
 const $ = window.$ || CTFd.lib.$;
 
@@ -76,7 +76,13 @@ CTFd._internal.challenge.postRender = function() {
         
         $container.empty();
         questions.forEach(q => {
-            const checkMark = q.solved ? '<i class="fas fa-check-circle text-success mr-2"></i>' : '';
+            let statusMark = '';
+            if (q.solved) {
+                statusMark = '<i class="fas fa-check-circle text-success mr-2"></i>';
+            } else if (q.max_attempts > 0 && q.attempts >= q.max_attempts) {
+                statusMark = '<i class="fas fa-times-circle text-danger mr-2"></i>';
+            }
+
             const attemptsLeft = Math.max(0, q.max_attempts - q.attempts);
             const attemptInfo = (q.max_attempts > 0 && !q.solved)
                 ? ` <small class="text-muted">(${attemptsLeft} attempts left)</small>`
@@ -87,7 +93,7 @@ CTFd._internal.challenge.postRender = function() {
                     <td class="w-25 align-middle">
                         <div class="d-flex align-items-center h-100">
                             <div class="metadata ba-metadata w-100" style="font-weight: bold;">
-                                ${checkMark} ${q.title} - ${q.points} pts
+                                ${statusMark} ${q.title} - ${q.points} pts
                                 ${attemptInfo}
                             </div>
                         </div>
@@ -111,16 +117,24 @@ CTFd._internal.challenge.postRender = function() {
             } else {
                 const isLocked = q.max_attempts > 0 && q.attempts >= q.max_attempts;
                 const savedVal = savedValues[q.id] || '';
-                $inputWrapper.append(`
-                    <input type="text" placeholder="${isLocked ? 'Max attempts reached' : 'Answer...'}" 
-                           data-question-id="${q.id}" class="form-control better-answer-input" 
-                           value="${savedVal}"
-                           ${isLocked ? 'disabled' : ''}>
-                    <button class="btn btn-success better-answer-submit ${isLocked ? 'disabled' : ''}" 
-                            type="button" title="Submit Answer" ${isLocked ? 'disabled' : ''}>
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
-                `);
+                
+                if (isLocked) {
+                    $inputWrapper.append(`
+                        <div class="form-control text-center text-danger bg-light" style="font-weight: bold; border-style: dashed;">
+                            Max attempts reached
+                        </div>
+                    `);
+                } else {
+                    $inputWrapper.append(`
+                        <input type="text" placeholder="Answer..." 
+                               data-question-id="${q.id}" class="form-control better-answer-input" 
+                               value="${savedVal}">
+                        <button class="btn btn-success better-answer-submit" 
+                                type="button" title="Submit Answer">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    `);
+                }
             }
             $container.append($row);
         });
