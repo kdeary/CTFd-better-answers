@@ -22,9 +22,9 @@ class BetterAnswersChallengeType(BaseChallenge):
         "view": f"/plugins/better-answers/assets/view.html",
     }
     scripts = {
-        "create": f"/plugins/better-answers/assets/create.js",
-        "update": f"/plugins/better-answers/assets/update.js",
-        "view": f"/plugins/better-answers/assets/view.js",
+        "create": f"/plugins/better-answers/assets/create.js?v=5",
+        "update": f"/plugins/better-answers/assets/update.js?v=5",
+        "view": f"/plugins/better-answers/assets/view.js?v=5",
     }
 
     @classmethod
@@ -89,6 +89,7 @@ class BetterAnswersChallengeType(BaseChallenge):
 
     @classmethod
     def read(cls, challenge):
+        db.session.expire_all()
         data = super().read(challenge)
         try:
             user = get_current_user()
@@ -350,6 +351,7 @@ class BetterAnswersChallengeType(BaseChallenge):
         )
         db.session.add(wrong)
         db.session.commit()
+        print(f"[BetterAnswers] Recorded fail for flag {flag_id}")
 
     @classmethod
     def solve(cls, user, team, challenge, request):

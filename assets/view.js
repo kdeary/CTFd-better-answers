@@ -1,3 +1,6 @@
+// Better Answers Plugin - Build v5
+console.log("Better Answers: view.js v5 loaded");
+
 CTFd._internal.challenge.preRender = function() {};
 CTFd._internal.challenge.postRender = function() {
     const $ = window.$ || CTFd.lib.$;
@@ -78,9 +81,10 @@ CTFd._internal.challenge.postRender = function() {
 
     function loadAndRender() {
         if (chalId) {
-            CTFd.fetch(`${CTFd.config.urlRoot}/api/v1/challenges/${chalId}`)
+            CTFd.fetch(`${CTFd.config.urlRoot}/api/v1/challenges/${chalId}?_=${Date.now()}`)
                 .then(r => r.json())
                 .then(res => {
+                    console.log("[BetterAnswers] API Response data:", res.data);
                     if (res.success && res.data && res.data.questions) {
                         // Update internal data so other CTFd components might see it
                         CTFd._internal.challenge.data.questions = res.data.questions;
@@ -160,10 +164,11 @@ CTFd._internal.challenge.postRender = function() {
                         $error.fadeOut(500);
                     }, 3000);
                     
-                    // Refresh count on incorrect attempts too
+                    // Refresh count on incorrect attempts too - wait 1s for DB to commit
                     setTimeout(() => {
+                        console.log("[BetterAnswers] Refreshing counts...");
                         loadAndRender();
-                    }, 500);
+                    }, 1000);
                 }
             }
         }).catch(err => {
