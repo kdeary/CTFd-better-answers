@@ -24,7 +24,7 @@ class BetterAnswersChallengeType(BaseChallenge):
     scripts = {
         "create": f"/plugins/better-answers/assets/create.js?v=5",
         "update": f"/plugins/better-answers/assets/update.js?v=5",
-        "view": f"/plugins/better-answers/assets/view.js?v=7",
+        "view": f"/plugins/better-answers/assets/view.js?v=8",
     }
 
     @classmethod
@@ -319,14 +319,7 @@ class BetterAnswersChallengeType(BaseChallenge):
                         solved_flags_count += 1
             
             if solved_flags_count >= total_flags:
-                # Precise cleanup using requirements metadata
-                for a in user_awards:
-                   if a.requirements and isinstance(a.requirements, dict):
-                       if a.requirements.get('challenge_id') == challenge.id:
-                           db.session.delete(a)
-                
-                db.session.commit()
-                return True, "Correct! Challenge fully solved."
+                return True, "Correct! You have fully solved the challenge."
 
             return True, "Correct!"
         else:
@@ -337,8 +330,21 @@ class BetterAnswersChallengeType(BaseChallenge):
         data = request.form or request.get_json()
         submission = data["submission"].strip()
         flag_id = data.get("question_id")
+        # Check if limit is already reached
+        current_fails = cls._get_fail_counts(challenge.id, user.id, team.id)
+        max_attempts_dict = {}
+        if challenge.flag_attempts:
+            try:
+                for i, att in enumerate(challenge.flag_attempts.split(',')):
+                    max_attempts_dict[i + 1] = int(att.strip())
+            except:
+                pass
         
-        # Prefix provided answer with metadata for tracking
+        limit = max_attempts_dict.get(flag_id, 0)
+        if limit > 0 and current_fails.get(flag_id, 0) >= limit:
+            print(f"[BetterAnswers] Limit reached for flag {flag_id}, ignoring attempt.")
+            return
+
         if flag_id:
             submission = f"[flag_id:{flag_id}] {submission}"
             
@@ -376,7 +382,16 @@ class BetterAnswersChallengeType(BaseChallenge):
         # So solve() should see it if committed.
 
         if solved_flags_count >= total_flags:
-            # Actually solved! Let core handle it.
+            # Actually solved! 
+            # 1. Clean up partial awards manually by checking the requirements metadata
+            for a in user_awards:
+                if a.requirements and isinstance(a.requirements, dict):
+                    if a.requirements.get('challenge_id') == challenge.id:
+                        db.session.delete(a)
+            
+            db.session.commit()
+
+            # 2. Let core handle the final Solves record
             super().solve(user, team, challenge, request)
         else:
             # Partial solve, do not create a generic `Solves` record!

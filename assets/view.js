@@ -1,5 +1,5 @@
-// Better Answers Plugin - Build v7
-console.log("Better Answers: view.js v7 loaded");
+// Better Answers Plugin - Build v8
+console.log("Better Answers: view.js v8 loaded");
 
 const $ = window.$ || CTFd.lib.$;
 
@@ -64,8 +64,9 @@ CTFd._internal.challenge.postRender = function() {
         $container.empty();
         questions.forEach(q => {
             const checkMark = q.solved ? '<i class="fas fa-check-circle text-success mr-2"></i>' : '';
+            const attemptsLeft = Math.max(0, q.max_attempts - q.attempts);
             const attemptInfo = (q.max_attempts > 0 && !q.solved)
-                ? ` <small class="text-muted">(${q.max_attempts - q.attempts} attempts left)</small>`
+                ? ` <small class="text-muted">(${attemptsLeft} attempts left)</small>`
                 : ` <small class="text-muted">(${q.attempts} attempts)</small>`;
 
             const templateStr = `
