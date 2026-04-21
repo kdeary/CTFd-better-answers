@@ -16,13 +16,13 @@
 
         function renderQuestions(questions) {
             window.ba_renderQuestions = renderQuestions;
-            // Use a more specific selector to ONLY target the active, visible modal
-            const $modal = $('.modal-content:visible');
+            // Use standard CSS selectors (.show) instead of jQuery-specific :visible to avoid SyntaxErrors
+            const $modal = $('.modal.show .modal-content');
             const $container = $modal.find('#ba-questions-container');
             
             if (!$container.length) {
-                if ($('.modal-content:visible').length) {
-                     console.warn("[BetterAnswers] Modal is visible but #ba-questions-container not found inside it. Retrying...");
+                if ($('.modal.show').length) {
+                     console.warn("[BetterAnswers] Modal is open but #ba-questions-container not found inside it. Retrying...");
                 }
                 setTimeout(() => renderQuestions(questions), 100);
                 return;
