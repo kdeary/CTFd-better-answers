@@ -331,7 +331,9 @@ class BetterAnswersChallengeType(BaseChallenge):
         submission = data["submission"].strip()
         flag_id = data.get("question_id")
         # Check if limit is already reached
-        current_fails = cls._get_fail_counts(challenge.id, user.id, team.id)
+        user_id = user.id
+        team_id = team.id if team else None
+        current_fails = cls._get_fail_counts(challenge.id, user_id, team_id)
         max_attempts_dict = {}
         if challenge.flag_attempts:
             try:
