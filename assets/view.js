@@ -1,5 +1,33 @@
-// Better Answers Plugin - Build v5
-console.log("Better Answers: view.js v5 loaded");
+// Better Answers Plugin - Build v6
+console.log("Better Answers: view.js v6 loaded");
+
+window.loadAndRender = function() {
+    const id = $('#ba-challenge-id').val() || $('#challenge-id').val() || window.CHALLENGE_ID;
+    console.log("[BetterAnswers] loadAndRender triggered. ID found:", id);
+    if (!id) {
+        console.error("[BetterAnswers] FAILED to find challenge ID for refresh.");
+        return;
+    }
+    
+    const url = `${CTFd.config.urlRoot}/api/v1/challenges/${id}?_=${Date.now()}`;
+    console.log("[BetterAnswers] Fetching:", url);
+    
+    CTFd.fetch(url)
+        .then(r => r.json())
+        .then(res => {
+            console.log("[BetterAnswers] API Refresh Response:", res);
+            if (res.success && res.data && res.data.questions) {
+                // Update internal data
+                CTFd._internal.challenge.data.questions = res.data.questions;
+                if (window.ba_renderQuestions) {
+                    window.ba_renderQuestions(res.data.questions);
+                } else {
+                    console.log("[BetterAnswers] ba_renderQuestions not found, trying reload as fallback.");
+                    window.location.reload();
+                }
+            }
+        }).catch(err => console.error("[BetterAnswers] Refresh fetch failed:", err));
+};
 
 CTFd._internal.challenge.preRender = function() {};
 CTFd._internal.challenge.postRender = function() {
@@ -14,6 +42,7 @@ CTFd._internal.challenge.postRender = function() {
     console.log('post render fired',chalId, data)
 
     function renderQuestions(questions) {
+        window.ba_renderQuestions = renderQuestions;
         const $modal = $('#challenge-window').length ? $('#challenge-window') : $(document);
         const $container = $modal.find('#ba-questions-container');
         
@@ -79,25 +108,10 @@ CTFd._internal.challenge.postRender = function() {
         });
     }
 
-    function loadAndRender() {
-        if (chalId) {
-            CTFd.fetch(`${CTFd.config.urlRoot}/api/v1/challenges/${chalId}?_=${Date.now()}`)
-                .then(r => r.json())
-                .then(res => {
-                    console.log("[BetterAnswers] API Response data:", res.data);
-                    if (res.success && res.data && res.data.questions) {
-                        // Update internal data so other CTFd components might see it
-                        CTFd._internal.challenge.data.questions = res.data.questions;
-                        renderQuestions(res.data.questions);
-                    }
-                });
-        }
-    }
-
     if (data && data.questions) {
         renderQuestions(data.questions);
     } else {
-        loadAndRender();
+        window.loadAndRender();
     }
 
     // Toggle visibility for solved questions
@@ -161,7 +175,7 @@ CTFd._internal.challenge.postRender = function() {
                     const msg = response.data.message || "Incorrect (Unknown Error)";
                     $error.text(msg).show();
                     setTimeout(() => {
-                        $error.fadeOut(500);
+                        $error.hide();
                     }, 3000);
                     
                     // Refresh count on incorrect attempts too - wait 1s for DB to commit
