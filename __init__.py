@@ -47,7 +47,7 @@ class BetterAnswersChallengeType(BaseChallenge):
             team_id=team_id
         ).all()
         
-        provided = [s.provided for s in subs]f
+        provided = [s.provided for s in subs]
         
         for a in awards:
             if a.requirements and isinstance(a.requirements, dict):
